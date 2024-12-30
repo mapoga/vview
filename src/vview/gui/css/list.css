@@ -1,0 +1,24 @@
+/* List */
+QWidget * {
+  border-radius: 0px;
+}
+
+/* Widget Item */
+QListWidget::item {
+  background: rgb(56, 56, 56);
+  margin: 1px;
+}
+QListWidget::item:selected {
+  background: rgb(62, 62, 62);
+}
+QScrollBar:vertical {
+  background: rgb(30, 30, 30);
+  width: 6px;
+  margin: 0 0 0 0;
+}
+
+QScrollBar::handle:vertical {
+  background: rgb(56, 56, 56);
+  border-radius: 0px;
+  min-height: 40px;
+}

@@ -1,0 +1,37 @@
+QWidget * {
+  background: rgb(56, 56, 56);
+}
+
+QWidget#main_QWidget {
+  border-radius: 0px;
+}
+
+/* Index */
+QLabel#index_QLabel {
+  padding-left: 12px;
+  font-family: SourceCodePro;
+  font-weight: 900;
+  font-size: 12px;
+  color: #999999;
+}
+
+/* Name */
+QLabel#name_QLabel {
+  font-weight: 800;
+  font-size: 14px;
+}
+
+/* Info */
+QLabel#info_QLabel {
+  padding-left: 18;
+  padding-right: 18px;
+}
+
+/* Tooltip */
+QToolTip {
+  background: rgb(40, 40, 40);
+  color: rgb(150, 150, 150);
+  font-family: SourceCodePro;
+  font-weight: 500;
+  font-size: 12px;
+}

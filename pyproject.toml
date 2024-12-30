@@ -1,0 +1,17 @@
+[project]
+name = "vview"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = "==3.11.2"
+dependencies = [
+    "PySide2==5.15",
+    "types-pyside2",
+]
+
+[project.scripts]
+vview = "vview:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

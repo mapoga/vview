@@ -1,0 +1,69 @@
+/* Thumbnail */
+QLabel#thumbnail_QLabel {
+  background: rgb(30, 30, 30);
+}
+
+/* Name */
+QLabel#name_QLabel {
+  font-weight: 700;
+  font-size: 18px;
+  color: #999999;
+}
+
+/* Name Highlighted */
+QWidget[selected="true"] QLabel#name_QLabel {
+  font-size: 20px;
+  font-weight: 900;
+  color: #dbad48;
+}
+
+/* Info */
+QWidget#info_QWidget {
+  background: transparent;
+}
+QLabel#frames_label_QLabel,
+QLabel#frames_value_QLabel,
+QLabel#path_label_QLabel,
+QLabel#path_value_QLabel,
+QLabel#date_label_QLabel,
+QLabel#date_value_QLabel {
+  font-weight: 500;
+  font-size: 10px;
+  color: rgb(130, 130, 130);
+}
+
+/* Labels */
+QLabel#frames_label_QLabel,
+QLabel#path_label_QLabel,
+QLabel#date_label_QLabel {
+  font-weight: 400;
+  color: rgb(100, 100, 100);
+}
+
+/* Frames Value */
+QLabel#frames_value_QLabel {
+  color: rgb(110, 110, 110);
+  font-weight: 600;
+}
+QWidget[selected="true"] QLabel#frames_value_QLabel {
+  color: rgb(180, 180, 180);
+}
+
+/* Path Value */
+QLabel#path_value_QLabel {
+  background: rgb(40, 40, 40);
+  border-radius: 3px;
+  padding: 0px;
+  padding-left: 4px;
+  padding-right: 2px;
+  color: rgb(70, 70, 70);
+}
+QWidget[selected="true"] QLabel#path_value_QLabel {
+  color: rgb(130, 130, 130);
+}
+
+/* Date Value */
+QLabel#date_value_QLabel {
+  font-weight: 400;
+  font-style: italic;
+}

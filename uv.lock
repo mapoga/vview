@@ -1,0 +1,47 @@
+version = 1
+requires-python = "==3.11.2"
+
+[[package]]
+name = "pyside2"
+version = "5.15.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "shiboken2" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d1/8c/6db38c3e6b61f8b8bbba178dcd35c056f6524133356e199f696e8c4daec5/PySide2-5.15.0-5.15.0-cp35.cp36.cp37.cp38-abi3-macosx_10_13_intel.whl", hash = "sha256:1478ea8a1ab5d8bc021ce41211933fbc238338fe70c02f7bcc2e80ea900dbf9e", size = 153766793 },
+    { url = "https://files.pythonhosted.org/packages/24/39/348e72c1607ac12915e1809e9092e09aa239bc48ace41d51253179e635bb/PySide2-5.15.0-5.15.0-cp35.cp36.cp37.cp38-abi3-manylinux1_x86_64.whl", hash = "sha256:f9099e49fb2d3571f5a81eb9ff281ce832ce8c333052e8175e2356b9c3e4a882", size = 170825274 },
+]
+
+[[package]]
+name = "shiboken2"
+version = "5.15.0"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/94/e6/b1061b88ca123788512156a24191f41ffc88da3bc994b07db226dfb20c9b/shiboken2-5.15.0-5.15.0-cp35.cp36.cp37.cp38-abi3-macosx_10_13_intel.whl", hash = "sha256:41a9157fb9cc7e0c0747926b25c23c3f94d59d61736a6ff763ebc7acf6afc5cf", size = 838208 },
+    { url = "https://files.pythonhosted.org/packages/34/09/89ea79363e71233ee39f08c497efd8b34b1dd1e26f1905f18555b3cb1b1a/shiboken2-5.15.0-5.15.0-cp35.cp36.cp37.cp38-abi3-manylinux1_x86_64.whl", hash = "sha256:5702e77ad5999ac45498c3cd47f5d078ce7406cf8dc8df74337b0cdc084bf762", size = 856629 },
+]
+
+[[package]]
+name = "types-pyside2"
+version = "5.15.2.1.7"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/18/b9/b9691abe89b0dd6f02e52604dda35112e202084970edf1515eba22e45ab8/types_pyside2-5.15.2.1.7.tar.gz", hash = "sha256:1d65072deb97481ad481b3414f94d02fd5da07f5e709c2d439ced14f79b2537c", size = 539112 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/c1/19/b093a69c7964ab9abea8130fc4ca7e5f1f0f9c19433e53e2ca41a38d1285/types_pyside2-5.15.2.1.7-py2.py3-none-any.whl", hash = "sha256:a7bec4cb4657179415ca7ec7c70a45f9f9938664e22f385c85fd7cd724b07d4d", size = 572176 },
+]
+
+[[package]]
+name = "vview"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "pyside2" },
+    { name = "types-pyside2" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "pyside2", specifier = "==5.15" },
+    { name = "types-pyside2" },
+]
