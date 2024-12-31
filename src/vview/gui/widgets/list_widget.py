@@ -4,7 +4,7 @@ from PySide2 import QtCore, QtGui, QtWidgets
 
 import vview.gui.style
 
-from .item_widget import VersionWidget
+from .item_widget import VersionItemWidget
 
 
 class VersionListWidget(QtWidgets.QListWidget):
@@ -48,7 +48,7 @@ class VersionListWidget(QtWidgets.QListWidget):
         self._refresh_ui()
 
     # Items ------------------------------------------------------------------
-    def add_version(self, widget: VersionWidget) -> QtWidgets.QListWidgetItem:
+    def add_version(self, widget: VersionItemWidget) -> QtWidgets.QListWidgetItem:
         item = QtWidgets.QListWidgetItem()
         self.insertItem(0, item)
         self.setItemWidget(item, widget)
@@ -217,7 +217,7 @@ class VersionListWidget(QtWidgets.QListWidget):
 
     def _item_widget_tuples(
         self,
-    ) -> List[Tuple[QtWidgets.QListWidgetItem, VersionWidget]]:
+    ) -> List[Tuple[QtWidgets.QListWidgetItem, VersionItemWidget]]:
         result = []
         count = self.count()
         for i in range(count):
@@ -225,6 +225,6 @@ class VersionListWidget(QtWidgets.QListWidget):
             if item:
                 widget = self.itemWidget(item)
                 if widget:
-                    if isinstance(widget, VersionWidget):
+                    if isinstance(widget, VersionItemWidget):
                         result.append((item, widget))
         return result

@@ -1,4 +1,4 @@
-import os
+from pathlib import Path
 from typing import Optional
 
 from PySide2 import QtCore, QtGui, QtWidgets
@@ -9,7 +9,7 @@ from vview.gui.utils import ReformatType
 from .elided_label import ElidedLabel
 
 
-class VersionWidget(QtWidgets.QWidget):
+class VersionItemWidget(QtWidgets.QWidget):
     _DEFAULT_PIXMAP = None
 
     def __init__(
@@ -38,7 +38,7 @@ class VersionWidget(QtWidgets.QWidget):
                             and the `thumb_width` value.
             thumb_width:    Thumbnail width.
         """
-        super(VersionWidget, self).__init__(parent=parent)
+        super(VersionItemWidget, self).__init__(parent=parent)
 
         vview.gui.style.install_fonts()
         self._init_ui()
@@ -122,12 +122,12 @@ class VersionWidget(QtWidgets.QWidget):
 
     def open_directory(self):
         QtGui.QDesktopServices.openUrl(
-            QtCore.QUrl.fromLocalFile(os.path.dirname(self.path()))
+            QtCore.QUrl.fromLocalFile(str(Path(self.path()).parent))
         )
 
     # Re-Implemented Methods -------------------------------------------------
     def resizeEvent(self, event):
-        super(VersionWidget, self).resizeEvent(event)
+        super(VersionItemWidget, self).resizeEvent(event)
 
         self._refresh_pixamp()
 
@@ -283,7 +283,7 @@ class VersionWidget(QtWidgets.QWidget):
             return self._DEFAULT_PIXMAP
         else:
             return vview.gui.utils.svg_to_pixmap(
-                svg_file=os.path.join(vview.gui.style.ICONS_DIR, "image.svg"),
+                svg_file=str(Path(vview.gui.style.ICONS_DIR) / "image.svg"),
                 size=QtCore.QSize(200, 200),
                 fg_color=QtGui.QColor(255, 255, 255, 15),
                 bg_color=QtGui.QColor(0, 0, 0, 1),

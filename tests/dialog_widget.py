@@ -1,24 +1,21 @@
-import os.path
+from pathlib import Path
 import random
 import datetime
 import sys
 
 from PySide2 import QtCore, QtWidgets, QtGui
 
-from vview.gui import VersionWidget, VersionDialog
-
-# import vview.core.thumb
+from vview.gui import VersionItemWidget, VersionDialog
 
 
 def get_test_tumbnails():
     result = []
-    test_dir = os.path.dirname(os.path.abspath(__file__))
-    thumb_dir = os.path.join(test_dir, "image_samples", "thumbnails")
+    test_dir = Path(__file__).absolute().parent
+    thumb_dir = test_dir / "image_samples" / "thumbnails"
 
-    for name in os.listdir(thumb_dir):
-        filepath = os.path.join(thumb_dir, name)
-        if os.path.isfile(filepath):
-            result.append(filepath)
+    for child in thumb_dir.iterdir():
+        if child.is_file():
+            result.append(str(child))
     return result
 
 
@@ -35,7 +32,7 @@ def main():
         path = random.choice(thumb_paths)
 
         # Create widget
-        version_widget = VersionWidget(
+        version_widget = VersionItemWidget(
             name="v{:03}".format(i),
             path=path,
             frames="1001-1060",
@@ -54,7 +51,8 @@ def main():
 
         # # Generate thumbnail
         # def add_tumb_pixmap(output):
-        #     if os.path.isfile(output):
+        #     filepath = Path(output)
+        #     if filepath.is_file():
         #         pixmap = QtGui.QPixmap.fromImage(output)
         #         version_widget.set_thumb_enabled(True)
         #         version_widget.set_thumb_pixmap(pixmap)

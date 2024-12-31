@@ -7,7 +7,7 @@ Generate a temporary thumbnail and cache it for re-use.
 
 ```python
 def print_path(output_path):
-    if os.path.isfile(output_path):
+    if Path(output_path).is_file():
         print(f'Successful thumbnail generation: {output_path}')
     else:
         print(f'Failed thumbnail generation:     {output_path}')
@@ -25,7 +25,7 @@ Generate a thumbnail to a specific location.
 
 ```python
 def print_path(output_path):
-    if os.path.isfile(output_path):
+    if Path(output_path).is_file():
         print(f'Successful thumbnail generation: {output_path}')
     else:
         print(f'Failed thumbnail generation:     {output_path}')
@@ -40,7 +40,6 @@ p.run(callback=print_path)
 ```
 """
 
-import os
 import subprocess
 import sys
 import tempfile
@@ -49,6 +48,7 @@ import uuid
 from collections import defaultdict
 from enum import Enum
 from typing import Callable, Optional, Tuple
+from pathlib import Path
 
 import nuke
 
@@ -75,8 +75,9 @@ def get_node_colorspace(node: nuke.Node) -> Optional[str]:
         nuke's command line will raise an exception.
         For that reason, it' best not to set default values.
     """
-    knob = node.knob("colorspace")
+    knob = node["colorspace"]
     if knob:
+        assert isinstance(knob, nuke.Pulldown_Knob)
         if knob.notDefault():
             return knob.value()
 
@@ -89,7 +90,7 @@ class FrameMode(Enum):
 
 
 class TempCache(object):
-    ROOT_DIR = os.path.join(tempfile.gettempdir(), "vview")
+    ROOT_DIR = Path(tempfile.gettempdir()) / "vview"
 
     def __init__(self):
         """Manager for creating and caching temporary thumbnails
@@ -174,7 +175,7 @@ class TempCache(object):
         # Cache miss
         else:
             # The file already exists. Add to cache. Call immediately
-            if os.path.isfile(output):
+            if Path(output).is_file():
                 self._cache[key] = output
                 if callable(callback):
                     callback(output, *callback_args, **callback_kwargs)
@@ -204,7 +205,7 @@ class TempCache(object):
     def _format_filepath(cls, key_str: str):
         """Generate the filepath for a key"""
         name = str(uuid.uuid5(uuid.NAMESPACE_DNS, key_str))
-        return os.path.join(cls.ROOT_DIR, name + ".png")
+        return str(Path(cls.ROOT_DIR) / (name + ".png"))
 
     def _process_finished(self, output, key):
         """This is run when thumbnail generation is complete"""
@@ -288,8 +289,7 @@ class ThumbProcess(object):
         popen_args = [
             f"{sys.executable}",
             "-t",
-            f"{os.path.abspath(__file__)}",
-            "-width",
+            f"{Path(__file__).absolute()}" "-width",
             f"{self._width}",
             "-height",
             f"{self._height}",
@@ -370,7 +370,7 @@ def _write_node_thumbnail(
     write = nuke.nodes.Write(file=output, create_directories=True)
     write.setInput(0, reformat)
     if isinstance(output_colorspace, str):
-        write.knob("colorspace").setValue(output_colorspace)
+        write["colorspace"].setValue(output_colorspace)
 
     nuke.execute(write, frame, frame)
 
@@ -393,9 +393,11 @@ def _write_file_thumbnail(
     do_write_script = isinstance(write_script, str) and write_script
 
     read = nuke.nodes.Read(on_error="nearest frame")
-    read.knob("file").fromUserText(source)
+    file_knob = read["file"]
+    assert isinstance(file_knob, nuke.File_Knob)
+    file_knob.fromUserText(source)
     if isinstance(source_colorspace, str):
-        read.knob("colorspace").setValue(source_colorspace)
+        read["colorspace"].setValue(source_colorspace)
 
     _write_node_thumbnail(
         read,
@@ -408,9 +410,10 @@ def _write_file_thumbnail(
         cleanup=not do_write_script,
     )
 
-    if do_write_script:
-        if os.path.isfile(write_script):
-            os.remove(write_script)
+    if isinstance(write_script, str) and write_script:
+        script_path = Path(write_script)
+        if script_path.is_file():
+            script_path.unlink()
         nuke.scriptSaveToTemp(write_script)
     else:
         nuke.delete(read)
@@ -452,9 +455,11 @@ def _max_size(
 
 
 def _get_color_management() -> Tuple[str, str, str]:
-    color_management = nuke.root().knob("colorManagement").value()
-    ocio_config = nuke.root().knob("OCIO_config").value()
-    custom_ocio_config = nuke.root().knob("customOCIOConfigPath").evaluate()
+    color_management = nuke.root()["colorManagement"].value()
+    ocio_config = nuke.root()["OCIO_config"].value()
+    custom_ocio_config_knob = nuke.root()["customOCIOConfigPath"]
+    assert isinstance(custom_ocio_config_knob, nuke.File_Knob)
+    custom_ocio_config = custom_ocio_config_knob.evaluate()
     return color_management, ocio_config, custom_ocio_config
 
 
@@ -464,11 +469,11 @@ def _set_color_management(
     custom_ocio_config: Optional[str],
 ):
     if isinstance(color_management, str):
-        nuke.root().knob("colorManagement").setValue(color_management)
+        nuke.root()["colorManagement"].setValue(color_management)
     if isinstance(ocio_config, str):
-        nuke.root().knob("OCIO_config").setValue(ocio_config)
+        nuke.root()["OCIO_config"].setValue(ocio_config)
     if isinstance(custom_ocio_config, str):
-        nuke.root().knob("customOCIOConfigPath").setValue(custom_ocio_config)
+        nuke.root()["customOCIOConfigPath"].setValue(custom_ocio_config)
 
 
 def main():

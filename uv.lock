@@ -1,25 +1,42 @@
 version = 1
-requires-python = "==3.11.2"
+requires-python = ">=3.7.3"
+resolution-markers = [
+    "python_full_version >= '3.8'",
+    "python_full_version < '3.8'",
+]
 
 [[package]]
 name = "pyside2"
-version = "5.15.0"
+version = "5.13.2"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "shiboken2" },
 ]
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/d1/8c/6db38c3e6b61f8b8bbba178dcd35c056f6524133356e199f696e8c4daec5/PySide2-5.15.0-5.15.0-cp35.cp36.cp37.cp38-abi3-macosx_10_13_intel.whl", hash = "sha256:1478ea8a1ab5d8bc021ce41211933fbc238338fe70c02f7bcc2e80ea900dbf9e", size = 153766793 },
-    { url = "https://files.pythonhosted.org/packages/24/39/348e72c1607ac12915e1809e9092e09aa239bc48ace41d51253179e635bb/PySide2-5.15.0-5.15.0-cp35.cp36.cp37.cp38-abi3-manylinux1_x86_64.whl", hash = "sha256:f9099e49fb2d3571f5a81eb9ff281ce832ce8c333052e8175e2356b9c3e4a882", size = 170825274 },
+    { url = "https://files.pythonhosted.org/packages/13/0b/37cf970e9d3f30356448ba120c7d92fa9b5aceea92171fd415f67db9c5fb/PySide2-5.13.2-5.13.2-cp35.cp36.cp37-abi3-macosx_10_12_intel.whl", hash = "sha256:ed6d22c7a3a99f480d4c9348bcced97ef7bc0c9d353ad3665ae705e8eb61feb5", size = 122645528 },
+    { url = "https://files.pythonhosted.org/packages/ea/58/e5a1aa7417f87987f03f02c0d0ce4bb1112ae9981667107ee9a1560f3607/PySide2-5.13.2-5.13.2-cp35.cp36.cp37-abi3-manylinux1_x86_64.whl", hash = "sha256:7c57fe60ed57a3a8b95d9163abca9caa803a1470f29b40bff8ef4103b97a96c8", size = 156103182 },
+    { url = "https://files.pythonhosted.org/packages/e5/50/9c0e6a75bc94cead57e2bf79ccdb1ccc94f43734fdf9bc71751cc2558ff3/PySide2-5.13.2-5.13.2-cp35.cp36.cp37-none-win32.whl", hash = "sha256:7c61a6883f3474939097b9dabc80f028887046be003ce416da1b3565a08d1f92", size = 103037902 },
+    { url = "https://files.pythonhosted.org/packages/e9/0c/9574f74fa125bacb101dfda825f944b567f838d48e56cf7ee02c7fe94e87/PySide2-5.13.2-5.13.2-cp35.cp36.cp37-none-win_amd64.whl", hash = "sha256:589b90944c24046d31bf76694590a600d59d20130015086491b793a81753629a", size = 122147056 },
 ]
 
 [[package]]
 name = "shiboken2"
-version = "5.15.0"
+version = "5.13.2"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/94/e6/b1061b88ca123788512156a24191f41ffc88da3bc994b07db226dfb20c9b/shiboken2-5.15.0-5.15.0-cp35.cp36.cp37.cp38-abi3-macosx_10_13_intel.whl", hash = "sha256:41a9157fb9cc7e0c0747926b25c23c3f94d59d61736a6ff763ebc7acf6afc5cf", size = 838208 },
-    { url = "https://files.pythonhosted.org/packages/34/09/89ea79363e71233ee39f08c497efd8b34b1dd1e26f1905f18555b3cb1b1a/shiboken2-5.15.0-5.15.0-cp35.cp36.cp37.cp38-abi3-manylinux1_x86_64.whl", hash = "sha256:5702e77ad5999ac45498c3cd47f5d078ce7406cf8dc8df74337b0cdc084bf762", size = 856629 },
+    { url = "https://files.pythonhosted.org/packages/ac/be/d0be40ab6b9767571b72c84eff94700a6eee02a7a161f7302e71128c752b/shiboken2-5.13.2-5.13.2-cp35.cp36.cp37-abi3-macosx_10_12_intel.whl", hash = "sha256:ca08a3c95b1b20ac2b243b7b06379609bd73929dbc27b28c01415feffe3bcea1", size = 815662 },
+    { url = "https://files.pythonhosted.org/packages/31/90/7d22091d25492af3c49f47dd255c761b45c1b93e60e164d8007ed2146758/shiboken2-5.13.2-5.13.2-cp35.cp36.cp37-abi3-manylinux1_x86_64.whl", hash = "sha256:81fa9b288c6c4b4c91220fcca2002eadb48fc5c3238e8bd88e982e00ffa77c53", size = 832936 },
+    { url = "https://files.pythonhosted.org/packages/74/3b/c48f6b29b63741379e1bc64f3c84c0ce680fe1274594b00ed3a8dc335b71/shiboken2-5.13.2-5.13.2-cp35.cp36.cp37-none-win32.whl", hash = "sha256:e2f72b5cfdb8b48bdb55bda4b42ec7d36d1bce0be73d6d7d4a358225d6fb5f25", size = 1921249 },
+    { url = "https://files.pythonhosted.org/packages/5a/c8/2b5c3e29755d862a508c8e225812d2049964a047f3656684577e9e472d8a/shiboken2-5.13.2-5.13.2-cp35.cp36.cp37-none-win_amd64.whl", hash = "sha256:5e84a4b4e7ab08bb5db0a8168e5d0316fbf3c25b788012701a82079faadfb19b", size = 2089759 },
+]
+
+[[package]]
+name = "types-nuke"
+version = "13.2.8.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/27/48/580f792f90ccd2124035d4bf9c3105cab64af509940693f17de9cfef2350/types_nuke-13.2.8.0.tar.gz", hash = "sha256:27626454c7d0bef1d3f4580f1e88c818cf9330186af538bd1ee5f48cc4c2cf67", size = 16447 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/5a/c4/a7fffabbfab1113d74b295f6cf55c80715f1e18755d2dc4a43e6b51d8b02/types_nuke-13.2.8.0-py2.py3-none-any.whl", hash = "sha256:ea3aecb23c154204ff4f061077f13032ba9c67b09c019f1bf7df517633b56360", size = 20397 },
 ]
 
 [[package]]
@@ -37,11 +54,13 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "pyside2" },
+    { name = "types-nuke" },
     { name = "types-pyside2" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "pyside2", specifier = "==5.15" },
+    { name = "pyside2", specifier = "==5.13.2" },
+    { name = "types-nuke", specifier = ">=13.2.8.0" },
     { name = "types-pyside2" },
 ]

@@ -1,35 +1,36 @@
+from pathlib import Path
 import random
-import os
 import datetime
 import sys
 
 from PySide2 import QtGui, QtWidgets
 
-import vview.gui.widgets.version_widget
+import vview.gui.widgets.item_widget
+
+
+def get_test_tumbnails():
+    result = []
+    test_dir = Path(__file__).absolute().parent
+    thumb_dir = test_dir / "image_samples" / "thumbnails"
+
+    for child in thumb_dir.iterdir():
+        if child.is_file():
+            result.append(str(child))
+    return result
+
 
 app = QtWidgets.QApplication(sys.argv)
 
-# Fonts
-fonts_dir = "/home/mapoga/Documents/python/vview/vview/gui/fonts"
-for filename in os.listdir(fonts_dir):
-    if filename.endswith(".ttf"):
-        QtGui.QFontDatabase.addApplicationFont(os.path.join(fonts_dir, filename))
-
-# thumbnails
-thumb_dir = "/home/mapoga/Documents/python/vview/tests/image_samples/thumbnails"
-thumb_paths = []
-for filename in os.listdir(thumb_dir):
-    thumb_paths.append(os.path.join(thumb_dir, filename))
-
+thumb_paths = get_test_tumbnails()
 thumb_path = random.choice(thumb_paths)
 print("thumb_path", thumb_path)
 thumbnail = QtGui.QPixmap(thumb_path)
 
-widget = vview.gui.widgets.version_widget.VersionWidget(
+widget = vview.gui.widgets.item_widget.VersionItemWidget(
     name="v001",
     path="/home/mapoga/Documents/python/vview/vview/gui/widgets/manager.py",
     frames="1001-1060",
-    timestamp=datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
+    date=datetime.datetime.now().strftime("%Y-%m-%d %H:%M"),
     # thumbnail=thumbnail,
 )
 

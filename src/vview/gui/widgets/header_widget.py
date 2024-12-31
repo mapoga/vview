@@ -1,4 +1,4 @@
-import os.path
+from pathlib import Path
 
 from PySide2 import QtWidgets, QtGui, QtCore
 
@@ -69,7 +69,7 @@ class HeaderWidget(QtWidgets.QWidget):
         # Info QLabel
         self.info_QLabel = QtWidgets.QLabel()
         self.info_QLabel.setObjectName("info_QLabel")
-        info_pixmap = QtGui.QPixmap(os.path.join(ICONS_DIR, "info.svg"))
+        info_pixmap = QtGui.QPixmap(str(Path(ICONS_DIR) / "info.svg"))
         info_pixmap = info_pixmap.scaled(
             18,
             18,
