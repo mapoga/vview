@@ -1,20 +1,61 @@
+import os
 import glob
 import re
+from pathlib import Path
 from typing import Dict, Iterable, List, Optional, Tuple
 
-# TODO: Search only padding in file names. Add fullpath option just in case
-# TODO: Work well with relative paths in nuke
+
+VERS_RE = re.compile(r"[vV](\d+)")
+# Regex pattern for versions
+# The first capture group is required and is used to get the version number as an integer.
+# ex: V1, v1, v01, v001, ...
+HASH_RE = re.compile(r"#{2,}")
+# Regex pattern for hash frame padding
+# Currently only match with a minimum of 2 '#' to avoid/limit possible conflicts.
+# ex: ##, ####, ########, ...
+STRF_RE = re.compile(r"%0(\d)d")
+# Regex pattern for string format frame padding
+# The first capture group is required and is used to capture the size as an integer.
+# ex: %02d, %04d, %08d, ...
+VersionType = Tuple[str, Optional[str], List[str]]
+# VersionType = (padded_path version_str, frames)
+#
+# padded_path:    Padded files path.
+# version_str:    Full version string.
+#                 None if no version could be found.
+# frames:         List of discovered frame strings.
+#                 None if the path does not contain padding.
+
+
+# Utility ---------------------------------------------------------------------
+def replace_re_match(
+    string: str,
+    repl: str,
+    m: re.Match,
+    group: int = 0,
+    offset: int = 0,
+) -> str:
+    start = m.start(group) + offset
+    end = m.end(group) + offset
+    return string[:start] + repl + string[end:]
+
+
+class WorkingDirectory:
+    def __init__(self, working_directory: str) -> None:
+        self._old = "."
+        self._new = working_directory
+
+    def __enter__(self):
+        self._old = os.getcwd()
+        os.chdir(self._new)
+
+    def __exit__(self, _type, _value, _traceback):
+        os.chdir(self._old)
 
 
 # Version ---------------------------------------------------------------------
-VERS_RE = re.compile(r"[vV](\d+)")
-# Regex pattern for versions
-# The first group is required and is used to capture the number.
-# ex: v1, v01, v001, ...
-
-
-def version_re_matches(path: str, pattern: re.Pattern = VERS_RE) -> List[re.Match]:
-    """Find matches for version strings in a path
+def re_match_versions(path: str, pattern: re.Pattern = VERS_RE) -> List[re.Match]:
+    """Return captured versions in a path
 
     Versions that do not match the last one are discarded.
 
@@ -33,97 +74,45 @@ def version_re_matches(path: str, pattern: re.Pattern = VERS_RE) -> List[re.Matc
     return [i for i in matches if i.group(0) == last_str]
 
 
-def version_replace_str(path: str, repl: str, matches: List[re.Match]) -> str:
-    """Replace verion sub-strings with a new one
-
-    Args:
-        path:       Path to operate on
-        repl:       New full version string. ex: 'v005'
-        matches:    Ordered list of captured versions.
-    """
-    res = path
-    for m in reversed(matches):
-        res = res[: m.start(0)] + repl + res[m.end(0) :]
-    return res
-
-
-def version_as_glob_expr(path: str, m: re.Match, offset: int = 0) -> str:
-    """Replace verion sub-strings with a glob pattern
+def replace_version_by_glob(path: str, m: re.Match, offset: int = 0) -> str:
+    """Replace a verion sub-string with a glob pattern
 
     The glob pattern is used to discover versions on disk
     ex: 'v01' -> 'v[0-9][0-9]'
 
     Args:
         path:   Path to operate on
-        m:      Ordered list of captured versions.
-                The Match objects mush have a group(1) than
-                capures the number section of the version string.
-
-    Returns:
-        Path ready for a glob scan
+        m:      Captured version.
+                The Match object mush have a group(1) that
+                captures the number part of the version string.
+        offset: Moves the replace operation left/right.
     """
     padding = "[0-9]" * len(m.group(1))
-    return path[: m.start(1) + offset] + padding + path[m.end(1) + offset :]
+    return replace_re_match(path, padding, m, group=1, offset=offset)
 
 
 # Padding ---------------------------------------------------------------------
-HASH_RE = re.compile(r"#{2,}")
-# Regex pattern for hash frame padding
-# Currently only match with a minimum of 2 '#' to avoid/limit conflicts.
-# ex: ##, ####, ########, ...
-STRF_RE = re.compile(r"%0(\d)d")
-# Regex pattern for string format frame padding
-# The first group is required and is used to capture the number.
-# ex: %02d, %04d, %08d, ...
-
-
-def pad_re_match(path: str, pattern: re.Pattern) -> Optional[re.Match]:
-    """Find a frame padding sub-string in a path
-
-    Only the last Match is returned
-
-    Args:
-        path:       Path to inspect
-        pattern:    Regex pattern capturing frame padding in the path.
-
-    Returns:
-        A Match object capturing the padding. If nothing is found, None is returned
-    """
-    for m in reversed(list(pattern.finditer(path))):
-        return m
-
-
-def pad_re_match_resolved(
-    path: str, patterns: Iterable[re.Pattern]
+def re_match_padding(
+    path: str,
+    pattern: re.Pattern,
+    fullpath: bool = False,
 ) -> Optional[re.Match]:
-    """Like `pad_re_match` but iterates over all patterns in order until a match is found
+    """Return the last captured frame padding in a path
 
     Args:
         path:       Path to inspect
-        pattern:    Ordered list of regex pattern capturing frame padding in the path.
-
-    Returns:
-        A Match object capturing the padding. If nothing is found, None is returned
+        pattern:    Regex pattern capturing a frame padding
+        fullpath:   True will scan the whole path.
+                    False will only scan the filename.
     """
-    for pattern in patterns:
-        m = pad_re_match(path, pattern)
-        if m:
+    root_len = len(str(Path(path).parent))
+    for m in reversed(list(pattern.finditer(path))):
+        if fullpath or m.start(0) >= root_len:
             return m
 
 
-def pad_replace_str(path: str, repl: str, m: re.Match) -> str:
-    """Replace the padding sub-string with a new one
-
-    Args:
-        path:   Path to operate on
-        repl:   New full padding string. ex: '####', '1001'
-        m:      Captured padding
-    """
-    return path[: m.start(0)] + repl + path[m.end(0) :]
-
-
-def pad_as_glob_expr(path: str, m: re.Match, offset: int = 0) -> str:
-    """Replace frame padding sub-strings with a glob pattern
+def replace_padding_by_glob(path: str, m: re.Match, offset: int = 0) -> str:
+    """Replace a frame padding sub-strings with a glob pattern
 
     The glob pattern is used to discover versions on disk
     ex: 'file_####.exr' -> 'file_[0-9][0-9][0-9][0-9].exr'
@@ -132,104 +121,109 @@ def pad_as_glob_expr(path: str, m: re.Match, offset: int = 0) -> str:
     Args:
         path:   Path to operate on.
         m:      Captured frame padding.
-                The Match object can have a group(1) that
-                capures the char length of the padding.
-        offset: Offset to apply to the Match span.
+                If a group(1) exist, its value will be converted to integer and
+                used to determine the size of the padding.
+                Useful with `%02d` notation.
+        offset: Moves the replace operation left/right.
                 Useful when doing multiple substitutions in chain that can
                 each alter the string length.
-
-    Returns:
-        Path ready for a glob scan
     """
+    # Generate glob pattern
     try:
         size = int(m.group(1))
-        start, end = m.span(0)
     except IndexError:
         size = len(m.group(0))
-        start, end = m.span(0)
-    start += offset
-    end += offset
     padding = "[0-9]" * size
-    return path[:start] + padding + path[end:]
+
+    return replace_re_match(path, padding, m, offset=offset)
 
 
 # Scanning --------------------------------------------------------------------
-VersionType = Tuple[str, Optional[str], List[str]]
-# Type alias for an individual version
-# (padded_path, version_str, frames)
-
-
 def scan_versions(
     path: str,
-    version_re: re.Pattern = VERS_RE,
-    hash_re: re.Pattern = HASH_RE,
-    strf_re: re.Pattern = STRF_RE,
+    root_dir: Optional[str] = None,
+    version_patterns: Optional[Iterable[re.Pattern]] = None,
+    padding_patterns: Optional[Iterable[re.Pattern]] = None,
 ) -> List[VersionType]:
-    """Scan for existing versions on disk
-
-    When a path does not contain a version,
-    the returned list will at most contain 1 item.
-    The `version_str` for that item will be None.
-
-    The path may contain frame padding in hash(####) or strf(%04d) format.
-    Discovered frames matching the padding will be added
-    to the frames list of that version.
-    If the path does not contain padding, the frames list will always be empty.
+    """Scan for related versions that exist on disk
 
     Args:
-        path:       Path to scan.
-        version_re: Regex Pattern for version sub-strings.
-                    The Match objects mush have a group(1) than
-                    capures the number section of the version string.
-        hash_re:    Regex pattern for hash frame padding.
-        strf_re:    Regex pattern for string format frame padding.
-                    The Match object must have a group(1) that
-                    capures the char length of the padding.
+        path:               Path to scan.
+        root_dir:           Root directory for relative paths.
+                            None will use the current working directory.
+        version_patterns:   Regex Patterns for version sub-strings.
+                            None will use the default: [VERS_RE]
+                            The patterns MUST include a capture group(1)
+                            to isolate the version number as an integer.
+        padding_patterns:   Regex pattern for frame padding.
+                            None will use the default: [STRF_RE, HASH_RE]
+                            Patterns that expand to a different size MUST inlcude a
+                            capture group(1) to isolate the expanded size.
+                            ex: '%02d' may expand to the frame '34'
+                            which has a different string length.
 
     Returns:
         Ordered list of versions discovered. Each version is a VersionType.
 
         padded_path:    Original path with the version string replaced.
-        version_str:    New version string. May be None if no version could be found.
-        frames:         List of discovered frames if the path contained padding.
+        version_str:    Full version string.
+                        None if no version could be found.
+        frames:         List of discovered frame strings.
+                        None if the path does not contain padding.
     """
-    # Find matches
-    version_matches = version_re_matches(path, version_re)
-    pad_match = pad_re_match_resolved(path, (hash_re, strf_re))
+    version_patterns = [VERS_RE] if version_patterns is None else version_patterns
+    padding_patterns = (
+        [STRF_RE, HASH_RE] if padding_patterns is None else padding_patterns
+    )
 
-    # Substitute patterns for glob expressions
-    # An offset amount if tracked to adjust subsequent replace operations.
-    # Replace operations are down backards where possible to avoid
+    # Find version sub-string matches
+    version_matches = []
+    for pattern in version_patterns:
+        version_matches = re_match_versions(path, pattern)
+        if version_matches:
+            break
+
+    # Find a frame padding sub-string match
+    padding_match = None
+    for pattern in padding_patterns:
+        padding_match = re_match_padding(path, pattern)
+        if padding_match:
+            break
+
+    # Sort substitutions from back to front as to not disrupt operations
+    match_tuples = [("version", m) for m in version_matches]
+    if padding_match:
+        match_tuples.append(("padding", padding_match))
+    match_tuples.sort(key=lambda i: i[1].start(0), reverse=True)
+
+    # Substitute version/padding for glob expressions.
     glob_expr = path
-    offset_idx = 0
-    offset_len = 0
-
-    if pad_match:
-        glob_expr = pad_as_glob_expr(glob_expr, pad_match)
-        offset_idx = pad_match.start(0)
-        offset_len = len(glob_expr) - len(path)
-
-    if version_matches:
-        for m in reversed(version_matches):
-            offset = 0
-            if m.start(0) > offset_idx:
-                offset = offset_len
-            glob_expr = version_as_glob_expr(glob_expr, m, offset=offset)
+    for type_name, m in match_tuples:
+        if type_name == "version":
+            glob_expr = replace_version_by_glob(glob_expr, m)
+        elif type_name == "padding":
+            glob_expr = replace_padding_by_glob(glob_expr, m)
 
     # Scan existing files
-    files = sorted(glob.glob(glob_expr))
+    if root_dir:
+        with WorkingDirectory(root_dir):
+            files = sorted(glob.glob(glob_expr))
+    else:
+        files = sorted(glob.glob(glob_expr))
     # for f in files:
     #     print("file:", f)
 
-    # Group files by version
-    offset_len = 0
-    if pad_match:
-        try:
-            offset_len = int(pad_match.group(1)) - len(pad_match.group(0))
-        except IndexError:
-            offset_len = 0
-
-    version_groups = _group_versions(files, version_matches, offset_idx, offset_len)
+    # Group by version
+    version_groups = dict()
+    for file in files:
+        versions = _get_path_version_strings(file, version_matches, padding_match)
+        # Discard files where version strings are not all equal
+        if len(set(versions)) <= 1:
+            version = versions[-1] if versions else None
+            if version in version_groups.keys():
+                version_groups[version].append(file)
+            else:
+                version_groups[version] = [file]
     # print("version_groups", version_groups)
     # for k, v in version_groups.items():
     #     print(k, ":")
@@ -238,49 +232,39 @@ def scan_versions(
 
     # Format the result
     if version_groups:
-        return _format_result(version_groups, pad_match)
+        return _format_result(version_groups, padding_match)
     return []
 
 
-def _group_versions(
-    paths: List[str],
+def _get_path_version_strings(
+    path: str,
     version_matches: List[re.Match],
-    offset_idx: int,
-    offset_len: int,
-) -> Dict[str, List[str]]:
-    """Group paths by their version string into a dictionary
+    padding_match: Optional[re.Match],
+):
+    # Calculate offset to apply to replace operations
+    # that come after the padding operation.
+    offset_idx = 0
+    offset_len = 0
+    if padding_match:
+        offset_idx = padding_match.start(0)
+        try:
+            offset_len = int(padding_match.group(1)) - len(padding_match.group(0))
+        except IndexError:
+            offset_len = 0
 
-    Args:
-        paths:      Path to group
-        version_re: Pattern for capturing version strings
-    """
-    groups = dict()
-    for path in paths:
-        # Find the version
-        versions = []
-        for m in version_matches:
-            offset = 0
-            if m.start(0) > offset_idx:
-                offset = offset_len
-            v = path[m.start(0) + offset : m.end(0) + offset]
-            versions.append(v)
-        # versions = [path[m.start(0) : m.end(0)] for m in version_matches]
-
-        version = versions[-1] if versions else None
-        # Discard files where version strings are not all equal
-        if len(set(versions)) > 1:
-            continue
-
-        # Add to dict
-        if version in groups.keys():
-            groups[version].append(path)
-        else:
-            groups[version] = [path]
-    return groups
+    # Find the versions
+    versions = []
+    for m in version_matches:
+        offset = 0
+        if m.start(0) > offset_idx:
+            offset = offset_len
+        v = path[m.start(0) + offset : m.end(0) + offset]
+        versions.append(v)
+    return versions
 
 
 def _format_result(
-    version_groups: Dict[str, List[str]], m: Optional[re.Match]
+    version_groups: Dict[str, List[str]], padding_match: Optional[re.Match]
 ) -> List[VersionType]:
     """Format the return value of scan_files
 
@@ -290,19 +274,20 @@ def _format_result(
     """
     result = list()
 
-    if m:
-        pad_str = m.group(0)
+    if padding_match:
+        pad_str = padding_match.group(0)
         try:
-            size = int(m.group(1))
-            start, end = m.span(0)
+            size = int(padding_match.group(1))
+            start, end = padding_match.span(0)
             end = start + size
         except IndexError:
-            size = len(m.group(0))
-            start, end = m.span(0)
+            size = len(padding_match.group(0))
+            start, end = padding_match.span(0)
 
         for version_str in sorted(version_groups):
             version_files = version_groups[version_str]
 
+            # Replace back the padding
             padded_path = version_files[0]
             padded_path = padded_path[:start] + pad_str + padded_path[end:]
             frames = []

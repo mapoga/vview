@@ -1,7 +1,7 @@
 import datetime
 import re
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Iterable, List, Optional, Tuple
 
 from vview.core.scanner.interface import IVersionScanner
 from vview.core.scanner.utils import format_frames
@@ -11,32 +11,35 @@ from .utils import (
     STRF_RE,
     VERS_RE,
     VersionType,
-    pad_re_match_resolved,
-    pad_replace_str,
+    re_match_padding,
+    re_match_versions,
+    replace_re_match,
     scan_versions,
-    version_re_matches,
-    version_replace_str,
 )
 
 
 class MinimalVersionScanner(IVersionScanner):
     def __init__(
         self,
-        version_re: re.Pattern = VERS_RE,
-        hash_re: re.Pattern = HASH_RE,
-        strf_re: re.Pattern = STRF_RE,
+        root_dir: Optional[str] = None,
+        version_patterns: Optional[Iterable[re.Pattern]] = None,
+        padding_patterns: Optional[Iterable[re.Pattern]] = None,
     ) -> None:
-        self.version_re = version_re
-        self.hash_re = hash_re
-        self.strf_re = strf_re
+        self.root_dir = root_dir
+        self.version_patterns = (
+            [VERS_RE] if version_patterns is None else version_patterns
+        )
+        self.padding_patterns = (
+            [STRF_RE, HASH_RE] if padding_patterns is None else padding_patterns
+        )
 
     # Scan --------------------------------------------------------------------
     def scan_versions(self, path: str) -> List[VersionType]:
         return scan_versions(
             path,
-            version_re=self.version_re,
-            hash_re=self.hash_re,
-            strf_re=self.strf_re,
+            root_dir=self.root_dir,
+            version_patterns=self.version_patterns,
+            padding_patterns=self.padding_patterns,
         )
 
     # Version attributes ------------------------------------------------------
@@ -68,9 +71,13 @@ class MinimalVersionScanner(IVersionScanner):
 
         # Format the last frame if there is frame padding
         if str_frames:
-            m = pad_re_match_resolved(padded_path, (self.hash_re, self.strf_re))
-            if m:
-                path = Path(pad_replace_str(padded_path, str_frames[-1], m))
+            for pattern in self.padding_patterns:
+                padding_match = re_match_padding(str(path), pattern)
+                if padding_match:
+                    path = Path(
+                        replace_re_match(padded_path, str_frames[-1], padding_match)
+                    )
+                    break
 
         # Get timestamp from existing file
         if path and path.is_file():
@@ -81,8 +88,10 @@ class MinimalVersionScanner(IVersionScanner):
 
     # Path modification -------------------------------------------------------
     def replace_path_version(self, path: str, version_str: str) -> str:
-        m = version_re_matches(path, self.version_re)
-        if m:
-            return version_replace_str(path, version_str, m)
-        else:
-            return path
+        for pattern in self.version_patterns:
+            version_matches = re_match_versions(path, pattern)
+            if version_matches:
+                for version_match in reversed(version_matches):
+                    replace_re_match(path, version_str, version_match)
+                return path
+        return path

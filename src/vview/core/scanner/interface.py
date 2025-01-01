@@ -8,7 +8,6 @@ class IVersionScanner(ABC):
     """Version scanner interface
 
     Serves as a communication layer between the GUI and the scanning process.
-
     A `version' can be anything as long as its understood by the implementation.
     """
 
@@ -31,6 +30,8 @@ class IVersionScanner(ABC):
     def get_version_name(self, version: Any) -> str:
         """Return the full version name of a `version`
 
+        ex: 'v001'
+
         Args:
             version: Version to inspect
         """
@@ -39,6 +40,8 @@ class IVersionScanner(ABC):
     @abstractmethod
     def get_version_path(self, version: Any) -> str:
         """Return the path of a `version`
+
+        ex: '/path/to/file_v001_####.exr'
 
         Args:
             version: Version to inspect
@@ -49,6 +52,8 @@ class IVersionScanner(ABC):
     def get_version_formatted_frames(self, version: Any) -> str:
         """Return the frames of a `version` formatted as a string
 
+        ex: '1-5 7 9-10'
+
         Args:
             version: Version to inspect
         """
@@ -58,14 +63,21 @@ class IVersionScanner(ABC):
     def get_version_frame_range(self, version: Any) -> Optional[Tuple[int, int]]:
         """Return the frame range of a `version` if possible
 
+        ex: (1, 10)
+
         Args:
             version: Version to inspect
+
+        Return:
+            first, last
         """
         raise NotImplementedError
 
     @abstractmethod
     def get_version_formatted_date(self, version: Any) -> str:
         """Return the timestamp of a `version` formatted as a string
+
+        ex: 2025-01-01 02:21
 
         Args:
             version: Version to inspect
@@ -76,6 +88,8 @@ class IVersionScanner(ABC):
     @abstractmethod
     def replace_path_version(self, path: str, version_str: str) -> str:
         """Replace the version sub-strings in a path
+
+        ex: 'name_v001.png' -> 'name_v003.png'
 
         Args:
             path:           Path work on.
