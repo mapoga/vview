@@ -17,9 +17,10 @@ def main():
     path = "night_pano.jpg"
     # path = "night_pano_v01_##.jpg"
     # path = "night_pano_v01_022.jpg"
-    # path = "landscape_hd_v14.jpg"
+    path = "landscape_hd_v14.jpg"
 
-    scanner = MinimalVersionScanner(root_dir=root_dir)
+    # scanner = MinimalVersionScanner(root_dir=root_dir)
+    scanner = MinimalVersionScanner()
     thumb_cache = FakeTumbCache(delay=0.7, rand_delay=1.0)
 
     def on_preview_changed(_version, _is_preview):
@@ -29,11 +30,11 @@ def main():
             print("Preview: Off")
 
     version = select_related_version(
-        path,
+        # path,
+        str(Path(root_dir) / path),
         scanner,
         thumb_enabled=True,
         thumb_cache=thumb_cache,
-        # thumb_reformat=ReformatType.EXPANDING,
         preview_changed_fct=on_preview_changed,
     )
     print(scanner.version_pretty_str(version))

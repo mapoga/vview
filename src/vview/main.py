@@ -11,7 +11,7 @@ from vview.gui.utils import ReformatType
 
 
 def choose_version_for_selected_nodes(
-    thumb_enabled: bool = False,
+    thumb_enabled: bool = True,
     thumb_reformat: ReformatType = ReformatType.FILL,
     change_range: bool = True,
 ) -> None:
@@ -73,13 +73,13 @@ def choose_version_for_nodes(
     for node in nodes:
         orig_dicts.append(save_knobs(node))
 
-    # Pre-calculate nodes versions
+    # Pre-calculate nodes versions.
+    # Helps perform better when live preview is active.
     nodes_versions = []
-    if change_range:
-        for idx, node in enumerate(nodes):
-            file = orig_dicts[idx]
-            node_versions = scanner.scan_versions(file)
-            nodes_versions.append(node_versions)
+    for idx, node in enumerate(nodes):
+        file = orig_dicts[idx]
+        node_versions = scanner.scan_versions(file)
+        nodes_versions.append(node_versions)
 
     # Get the path to scan + colorspace
     path = ""
@@ -97,8 +97,7 @@ def choose_version_for_nodes(
         if _is_preview:
             _version_str = scanner.get_version_name(_version)
             for _idx, _node in enumerate(nodes):
-                _node_versions = nodes_versions[_idx]
-                _node_version = _node_versions.get(_version_str)
+                _node_version = nodes_versions[_idx].get(_version_str)
                 set_node_version(_node, _node_version, scanner, change_range)
         # Restore
         else:

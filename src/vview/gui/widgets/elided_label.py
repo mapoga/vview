@@ -12,12 +12,15 @@ class ElidedLabel(QtWidgets.QLabel):
         super(ElidedLabel, self).__init__(*args, **kwargs)
         self._elideMode = elideMode
         self._hoverColor = QtGui.QColor()
+        self.setMouseTracking(True)
 
     # Public -----------------------------------------------------------------
     def elideMode(self) -> QtCore.Qt.TextElideMode:
         return self._elideMode
 
     def setElideMode(self, mode: QtCore.Qt.TextElideMode):
+        # Workaround
+        # Could not find a way to use colors from the stylesheet
         self._elideMode = mode
         if mode != self.elideMode():
             self.updateGeometry()
@@ -73,13 +76,11 @@ class ElidedLabel(QtWidgets.QLabel):
 
     def enterEvent(self, event):
         super(ElidedLabel, self).enterEvent(event)
-        if self.hoverColor().isValid():
-            self.update()
+        self.update()
 
     def leaveEvent(self, event):
         super(ElidedLabel, self).leaveEvent(event)
-        if self.hoverColor().isValid():
-            self.update()
+        self.update()
 
     def mousePressEvent(self, ev):
         super(ElidedLabel, self).mousePressEvent(ev)
