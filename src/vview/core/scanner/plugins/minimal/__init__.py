@@ -1,5 +1,5 @@
 from .scanner import MinimalVersionScanner
-from .utils import VERS_RE, HASH_RE, STRF_RE
+from .core import VERS_RE, HASH_RE, STRF_RE
 
 
 __all__ = [

@@ -18,6 +18,7 @@ class VersionItemWidget(QtWidgets.QWidget):
         path: str = "",
         frames: str = "",
         date: str = "",
+        directory: str = "",
         thumb_enabled: bool = False,
         thumb_pixmap: Optional[QtGui.QPixmap] = None,
         thumb_reformat: ReformatType = ReformatType.FILL,
@@ -31,6 +32,8 @@ class VersionItemWidget(QtWidgets.QWidget):
             path:           Path of the version. ex: '/path/to/render_%04d.exr'
             frames:         Available frames. ex: '1-10' or '1-3, 5, 9'
             date:           Timestamp of the media. ex: '2024-12-19 20:47'
+            directory:      Path used by the `open_directory` method.
+                            If empty, the dirname of the `path` argument will be used instead.
             thumb_enabled:  True will display a thumbnail of the media.
             thumb_pixmap:   Thumbnail to dispalay.
             thumb_reformat: Thumbnail reformat type.
@@ -47,6 +50,7 @@ class VersionItemWidget(QtWidgets.QWidget):
         self._path: str = path
         self._frames: str = frames
         self._date: str = date
+        self.directory: str = directory
         self._thumb_enabled: bool = thumb_enabled
         self._thumb_pixmap: Optional[QtGui.QPixmap] = None
         self._thumb_reformat: ReformatType = thumb_reformat
@@ -121,9 +125,10 @@ class VersionItemWidget(QtWidgets.QWidget):
         self._refresh_pixamp()
 
     def open_directory(self):
-        QtGui.QDesktopServices.openUrl(
-            QtCore.QUrl.fromLocalFile(str(Path(self.path()).parent))
-        )
+        path = self.directory
+        if not path:
+            path = str(Path(self.path()).parent)
+        QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(path))
 
     # Re-Implemented Methods -------------------------------------------------
     def resizeEvent(self, event):
@@ -137,7 +142,7 @@ class VersionItemWidget(QtWidgets.QWidget):
         self.setProperty("selected", is_selected)
 
         # Force widgets to update otherwise the stylesheet does not
-        # get updated properties
+        # get the updated properties.
         self._refresh_properties(self.name_QLabel)
         self._refresh_properties(self.frames_value_QLabel)
         self._refresh_properties(self.path_value_QLabel)
@@ -146,7 +151,7 @@ class VersionItemWidget(QtWidgets.QWidget):
     @staticmethod
     def _refresh_properties(widget):
         # Force widgets to update otherwise the stylesheet does not
-        # get updated properties
+        # get the updated properties.
         widget.style().unpolish(widget)
         widget.style().polish(widget)
 
@@ -277,13 +282,13 @@ class VersionItemWidget(QtWidgets.QWidget):
     def _thumb_default(self) -> QtGui.QPixmap:
         """Get the default thumbnail.
 
-        Is shared across all instances for performance reasons.
+        Its shared across all instances for performance reasons. Maybe overkill.
         """
         if isinstance(self._DEFAULT_PIXMAP, QtGui.QPixmap):
             return self._DEFAULT_PIXMAP
         else:
             return vview.gui.utils.svg_to_pixmap(
-                svg_file=str(Path(vview.gui.style.ICONS_DIR) / "image.svg"),
+                svg_file=":image.svg",
                 size=QtCore.QSize(200, 200),
                 fg_color=QtGui.QColor(255, 255, 255, 15),
                 bg_color=QtGui.QColor(0, 0, 0, 1),

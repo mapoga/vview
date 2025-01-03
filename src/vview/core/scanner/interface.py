@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any, List, Optional, Tuple
 
-from .utils import elide_middle
+from vview.core.utils import elide_middle
 
 
 class IVersionScanner(ABC):
@@ -15,6 +15,8 @@ class IVersionScanner(ABC):
     @abstractmethod
     def scan_versions(self, path: str) -> List[Any]:
         """Scan for existing `versions` on disk
+
+        If the path is relative, the scanner should try and return relative paths as well.
 
         Args:
             path:   Path of the file to scan.
@@ -41,7 +43,18 @@ class IVersionScanner(ABC):
     def get_version_path(self, version: Any) -> str:
         """Return the path of a `version`
 
-        ex: '/path/to/file_v001_####.exr'
+        ex: 'file_v001_####.exr'
+
+        Args:
+            version: Version to inspect
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def get_version_absolute_path(self, version: Any) -> str:
+        """Return the absolute path of a `version`
+
+        ex: '/root/path/to/file_v001_####.exr'
 
         Args:
             version: Version to inspect
@@ -92,18 +105,27 @@ class IVersionScanner(ABC):
         ex: 'name_v001.png' -> 'name_v003.png'
 
         Args:
-            path:           Path work on.
-            version_str:    New full version string.
+            path:           Path to modify.
+            version_str:    Full string of the new version.
 
         Returns:
             Modified copy of the path
         """
         raise NotImplementedError
 
-    def version_repr(self, version: Any, max_len: int = 90) -> str:
+    def version_pretty_str(self, version: Any, max_len: int = 90) -> str:
+        """Return a pretty string of the `version`
+
+        Args:
+            version:    Version to render.
+            max_len:    Maximum string width.
+        """
+        if version is None:
+            return str(None)
+
         name = self.get_version_name(version)
-        spaces = 15
-        suffix_len = max_len - spaces - len(name)
+        dead_space = 15
+        suffix_len = max_len - dead_space - len(name)
 
         frames = self.get_version_formatted_frames(version)
         frames = elide_middle(frames, suffix_len).ljust(suffix_len)

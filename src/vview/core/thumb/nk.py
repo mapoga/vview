@@ -1,8 +1,8 @@
 """
-Module for generating thumbnails without blocking
+Module for generating thumbnails from nuke without blocking
 
 
-Option 1.
+Option 1. (Preferred)
 Generate a temporary thumbnail and cache it for re-use.
 
 ```python
@@ -46,66 +46,37 @@ import tempfile
 import threading
 import uuid
 from collections import defaultdict
-from enum import Enum
-from typing import Callable, Optional, Tuple
 from pathlib import Path
+from typing import Callable, Optional, Tuple
 
 import nuke
 
-
-def get_node_sequence(node: nuke.Node) -> Optional[str]:
-    """Return the sequence of a Read/Write node in nuke formatting
-
-    ex: '/dirname/pathname_%04d.exr 1-10'
-    """
-    first = node.firstFrame()
-    last = node.lastFrame()
-    file = nuke.filename(node)
-    if file:
-        return f"{file} {first}-{last}"
+from .base import FrameMode, IThumbCache
 
 
-def get_node_colorspace(node: nuke.Node) -> Optional[str]:
-    """Return the colorspace of a Read/Write node
-
-    None is returned if the default value is used or the knob does not exists.
-
-    Note:
-        Setting a colorspace knob to its default value when using
-        nuke's command line will raise an exception.
-        For that reason, it' best not to set default values.
-    """
-    knob = node["colorspace"]
-    if knob:
-        assert isinstance(knob, nuke.Pulldown_Knob)
-        if knob.notDefault():
-            return knob.value()
-
-
-class FrameMode(Enum):
-    FIRST = "first"
-    MIDDLE = "middle"
-    LAST = "last"
-    CUSTOM = "custom"
-
-
-class TempCache(object):
+class TempCache(IThumbCache):
     ROOT_DIR = Path(tempfile.gettempdir()) / "vview"
 
     def __init__(self):
-        """Manager for creating and caching temporary thumbnails
+        """Temporary thumbnails cache
 
-        The generated files are shared across cache instances in a tmp directory.
+        The files are stored in a temporary directory handled by the operating system.
+        The OS will usually clear them after a reboot or a certain period.
+
+        This cache is meant to be quick and re-use thumbnails created in previous
+        nuke sessions as long as the OS decides to keep them.
+
         """
         self._cache = dict()
         self._callbacks = defaultdict(list)
 
     def clear(self):
-        """Clear the cache
+        """Clear the whole cache
 
-        The files are not directly removed since other instances might be using them.
-        The tmp directory is left to be managed by the OS.
+        The files are not directly removed since other cache instances might be using them.
+        The tmp files are left to be managed by the OS.
         """
+        # TODO: Should remove the files as well. `TempCache.clear()` is useless in it's current form.
         self._cache.clear()
         self._callbacks.clear()
 
@@ -122,29 +93,6 @@ class TempCache(object):
         callback_args: Optional[tuple] = None,
         callback_kwargs: Optional[dict] = None,
     ) -> None:
-        """Get a thumbnail from the cache or generate it if missing
-
-        Once the subprocess has exited, `callback` will be called like so:
-        `callback(output_path, *callback_args, **callback_kwargs)`
-
-        The `output_path` should always be verified, as there is no guarantee
-        of a successful export.
-
-        Args:
-            source:             Filepath to generate a thumbnail for.
-                                Can be a nuke sequence ex: '/path_####.png 1-5'
-            width:              Maximum width of the thumbnail.
-                                The source ratio will be preserved.
-            height:             Maximum heigth of the thumbnail.
-                                The source ratio will be preserved.
-            frame_mode:         Frame selection mode.
-            custom_frame:       Frame to use when the frame_mode is FrameMode.CUSTOM
-            source_colorspace:  Colorspace of the Read node.
-            output_colorspace:  Colorspace of the Write node.
-            callback:           Function to call when the generation is finished.
-            callback_args:      Arguments for the callback
-            callback_kwargs:    Keyword arguments for the callback
-        """
         if callback_args is None:
             callback_args = tuple()
         if callback_kwargs is None:
@@ -208,7 +156,7 @@ class TempCache(object):
         return str(Path(cls.ROOT_DIR) / (name + ".png"))
 
     def _process_finished(self, output, key):
-        """This is run when thumbnail generation is complete"""
+        """This is run when a thumbnail generation is complete"""
 
         # Prevent new callbacks to be added
         self._cache[key] = output
@@ -481,7 +429,7 @@ def main():
     Its used by the `ThumbProcess` class.
 
     Users must avoid using an integer as the last argument since nuke will
-    take it and use it for its own frame range.
+    strip it and use it for its own frame range.
 
     Examples:
         nuke -t this_module.py -width 200 -height 200 -source image.exr -output thumbnail.png

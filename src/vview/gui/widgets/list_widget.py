@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from PySide2 import QtCore, QtGui, QtWidgets
 
@@ -16,6 +16,12 @@ class VersionListWidget(QtWidgets.QListWidget):
         scrollbar_enabled: bool = True,
         parent=None,
     ):
+        """List containing versionned items
+
+        Args:
+            max_visible_items:  Maximum number of items visible at once.
+            scrollbar_enabled:  Show the scrollbar if useful.
+        """
         super(VersionListWidget, self).__init__(parent)
         vview.gui.style.install_fonts()
 
@@ -49,11 +55,30 @@ class VersionListWidget(QtWidgets.QListWidget):
 
     # Items ------------------------------------------------------------------
     def add_version(self, widget: VersionItemWidget) -> QtWidgets.QListWidgetItem:
+        """Add a pre-configured version item to the list"""
         item = QtWidgets.QListWidgetItem()
-        self.insertItem(0, item)
+        self.addItem(item)
         self.setItemWidget(item, widget)
         self._update_item_size_hint(item)
         return item
+
+    def idx_widget(self, idx: int) -> Optional[VersionItemWidget]:
+        """Return the widget of an index"""
+        if idx >= 0:
+            item = self.item(idx)
+            if item:
+                widget = self.itemWidget(item)
+                if widget:
+                    assert isinstance(widget, VersionItemWidget)
+                    return widget
+
+    def open_selected(self):
+        """Open the directory of the selected index"""
+        idx = self.selected_index()
+        widget = self.idx_widget(idx)
+        if widget:
+            assert isinstance(widget, VersionItemWidget)
+            widget.open_directory()
 
     # Selection --------------------------------------------------------------
     def selected_index(self) -> int:
@@ -115,10 +140,14 @@ class VersionListWidget(QtWidgets.QListWidget):
         size_hint = super(VersionListWidget, self).sizeHint()
 
         height = self._height_for_max_items(
-            self.max_visible_items(), self.UNIFORM_HEIGHT
+            self.max_visible_items(),
+            self.UNIFORM_HEIGHT,
         )
         size_hint.setHeight(height)
         return size_hint
+
+    def minimumSizeHint(self) -> QtCore.QSize:
+        return self.sizeHint()
 
     def resizeEvent(self, e):
         super(VersionListWidget, self).resizeEvent(e)
@@ -133,6 +162,7 @@ class VersionListWidget(QtWidgets.QListWidget):
         self.setHorizontalScrollBarPolicy(QtCore.Qt.ScrollBarAlwaysOff)
         self.setSizeAdjustPolicy(QtWidgets.QAbstractScrollArea.AdjustToContents)
         self.setUniformItemSizes(True)
+        self.setMinimumSize(QtCore.QSize(0, 0))
 
     def _init_connects(self):
         self.itemSelectionChanged.connect(self._on_items_selection_changed)
@@ -170,6 +200,12 @@ class VersionListWidget(QtWidgets.QListWidget):
         max_act.triggered.connect(self.select_last)
         self.addAction(max_act)
 
+        # Open directory
+        open = QtWidgets.QAction("open", parent=self)
+        open.setShortcut(QtGui.QKeySequence("Ctrl+o"))
+        open.triggered.connect(self.open_selected)
+        self.addAction(open)
+
     # Event Callbacks --------------------------------------------------------
     def _on_items_selection_changed(self):
         self._update_items_state()
@@ -182,6 +218,8 @@ class VersionListWidget(QtWidgets.QListWidget):
 
     def _height_for_max_items(self, max_count: int, items_uniform_height: int) -> int:
         true_count = min(self.count(), max_count)
+        if true_count == 0:
+            return 0
 
         # Items height
         height = true_count * items_uniform_height

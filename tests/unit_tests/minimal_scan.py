@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from vview.core.scanner.plugins.minimal.utils import (
+from vview.core.scanner.plugins.minimal.core import (
     scan_versions,
     re_match_versions,
     replace_re_match,

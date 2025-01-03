@@ -4,13 +4,14 @@ from pathlib import Path
 from typing import Iterable, List, Optional, Tuple
 
 from vview.core.scanner.interface import IVersionScanner
-from vview.core.scanner.utils import format_frames
+from vview.core.utils import format_frames
 
-from .utils import (
+from .core import (
     HASH_RE,
     STRF_RE,
     VERS_RE,
     VersionType,
+    WorkingDirectory,
     re_match_padding,
     re_match_versions,
     replace_re_match,
@@ -25,6 +26,18 @@ class MinimalVersionScanner(IVersionScanner):
         version_patterns: Optional[Iterable[re.Pattern]] = None,
         padding_patterns: Optional[Iterable[re.Pattern]] = None,
     ) -> None:
+        """Version scanner implementation that aims to be as bare-bones as possible
+
+        Args:
+            root_dir:           Working directory for relative paths.
+            version_patterns:   List of patterns that can capture the version sub-string(s).
+                                Only the first pattern to work will be used.
+                                version ex: 'v1', 'V1', 'v001', 'V00000001'
+            padding_patterns:   List of patterns that can capture the padding sub-string.
+                                Only the first pattern to work will be used.
+                                padding ex: '##',   '####', '########'
+                                            '%02d', '%04d', '%08d'
+        """
         self.root_dir = root_dir
         self.version_patterns = (
             [VERS_RE] if version_patterns is None else version_patterns
@@ -51,6 +64,20 @@ class MinimalVersionScanner(IVersionScanner):
         padded_path, _, _ = version
         return str(padded_path)
 
+    def get_version_absolute_path(self, version: VersionType) -> str:
+        padded_path, _, _ = version
+        p = Path(str(padded_path))
+
+        # Custom working directory
+        if self.root_dir:
+            if not p.is_absolute():
+                with WorkingDirectory(self.root_dir):
+                    p = p.absolute()
+                return str(p)
+
+        # Default working directory
+        return str(p.absolute())
+
     def get_version_formatted_frames(self, version: VersionType) -> str:
         _, _, str_frames = version
         int_frames = [int(f) for f in str_frames]
@@ -66,20 +93,19 @@ class MinimalVersionScanner(IVersionScanner):
     def get_version_formatted_date(self, version: VersionType) -> str:
         padded_path, _, str_frames = version
 
-        # Use the path as-is if there is no frame padding
-        path = Path(padded_path)
+        # Use the absolute path as-is if there is no frame padding
+        path = self.get_version_absolute_path(version)
 
         # Format the last frame if there is frame padding
         if str_frames:
             for pattern in self.padding_patterns:
                 padding_match = re_match_padding(str(path), pattern)
                 if padding_match:
-                    path = Path(
-                        replace_re_match(padded_path, str_frames[-1], padding_match)
-                    )
+                    path = replace_re_match(padded_path, str_frames[-1], padding_match)
                     break
 
         # Get timestamp from existing file
+        path = Path(path)
         if path and path.is_file():
             date = datetime.datetime.fromtimestamp(path.stat().st_mtime)
             return date.strftime("%Y-%m-%d %H:%M")
@@ -92,6 +118,6 @@ class MinimalVersionScanner(IVersionScanner):
             version_matches = re_match_versions(path, pattern)
             if version_matches:
                 for version_match in reversed(version_matches):
-                    replace_re_match(path, version_str, version_match)
+                    path = replace_re_match(path, version_str, version_match)
                 return path
         return path

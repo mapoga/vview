@@ -7,10 +7,13 @@ class ReformatType(Enum):
 
     Attributes:
         FIT:        Uniform scale to fit inside the available space.
-        FILL:       Uniform scale to fill all the available space.
-        DISTORT:    Anamorphic scale to fill all the available space.
+                    May leave some empty space.
+        FILL:       Uniform scale to fill ALL the available space.
+                    Will never leave empty space.
+        DISTORT:    Anamorphic scale to fill ALL the available space.
+                    Will never leave empty space.
         EXPANDING:  Uniform scale to match the available height.
-                    The width is unbound in this mode.
+                    The width is unbound in this mode and may be smaller or bigger.
     """
 
     FIT = 0

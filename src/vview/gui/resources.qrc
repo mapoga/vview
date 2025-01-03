@@ -1,0 +1,9 @@
+<!DOCTYPE RCC><RCC version="1.0">
+<qresource>
+    <!-- pyside2-rcc resources.qrc -o resources.py -->
+    <file alias="toggle-slider-on.svg">icons/toggle-slider-on.svg</file>
+    <file alias="toggle-slider-off.svg">icons/toggle-slider-off.svg</file>
+    <file alias="image.svg">icons/image.svg</file>
+    <file alias="info.svg">icons/info.svg</file>
+</qresource>
+</RCC>

@@ -4,6 +4,8 @@ QWidget * {
 
 QWidget#main_QWidget {
   border-radius: 0px;
+  border: 1px solid rgb(56, 56, 56);
+  border-top: 1px solid rgb(65, 65, 65);
 }
 
 /* Index */
@@ -19,6 +21,30 @@ QLabel#index_QLabel {
 QLabel#name_QLabel {
   font-weight: 800;
   font-size: 14px;
+}
+
+/* Info CheckBox */
+QCheckBox#preview_QCheckBox {
+  background: transparent;
+  font-family: SourceCodePro;
+  font-weight: 600;
+  font-size: 11px;
+  color: #707070;
+}
+QCheckBox#preview_QCheckBox::indicator {
+  background-color: transparent;
+  background: transparent;
+  width: 22px;
+  height: 22px;
+  border-radius: 1px;
+  padding-right: 22px;
+  padding-left: 0px;
+}
+QCheckBox#preview_QCheckBox::indicator:unchecked {
+  image: url(:toggle-slider-off.svg);
+}
+QCheckBox#preview_QCheckBox::indicator:checked {
+  image: url(:toggle-slider-on.svg);
 }
 
 /* Info */
