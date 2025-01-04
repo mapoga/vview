@@ -6,6 +6,7 @@ from vview.core.scanner.interface import IVersionScanner
 from vview.core.scanner.plugins.minimal.scanner import MinimalVersionScanner
 from vview.core.thumb.base import IThumbCache
 from vview.core.thumb.nk import temp_cache
+from vview.core.utils import format_as_nuke_sequence
 from vview.gui.main import select_related_version
 from vview.gui.utils import ReformatType
 
@@ -176,8 +177,9 @@ def set_node_version(
     if not version:
         return
     version_str = scanner.get_version_name(version)
+    frame_range = scanner.get_version_frame_range(version)
 
-    # Set files
+    # Set filepaths
     knob_names = ("file", "proxy")
     for knob_name in knob_names:
         knob = node.knob(knob_name)
@@ -185,15 +187,12 @@ def set_node_version(
             path = knob.value()
             if path:
                 path = scanner.replace_path_version(path, version_str)
-                knob.setValue(path)
 
-    # Set frame range
-    if change_range:
-        frame_range = scanner.get_version_frame_range(version)
-        if frame_range:
-            knob_names = (("first", "origfirst"), ("last", "origlast"))
-            for frame, knob_names in zip(frame_range, knob_names):
-                for knob_name in knob_names:
-                    knob = node.knob(knob_name)
-                    if knob and isinstance(knob, nuke.Int_Knob):
-                        knob.setValue(frame)
+                if change_range:
+                    if frame_range:
+                        path = format_as_nuke_sequence(
+                            path, frame_range[0], frame_range[1]
+                        )
+                    knob.fromUserText(path)
+                else:
+                    knob.setValue(path)

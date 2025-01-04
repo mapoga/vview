@@ -40,10 +40,10 @@ p.run(callback=print_path)
 ```
 """
 
+from concurrent.futures import ThreadPoolExecutor
 import subprocess
 import sys
 import tempfile
-import threading
 import uuid
 from collections import defaultdict
 from pathlib import Path
@@ -52,6 +52,10 @@ from typing import Callable, Optional, Tuple
 import nuke
 
 from .base import FrameMode, IThumbCache
+
+
+# Thread Pool -----------------------------------------------------------------
+thread_pool = ThreadPoolExecutor(max_workers=24)
 
 
 class TempCache(IThumbCache):
@@ -65,20 +69,9 @@ class TempCache(IThumbCache):
 
         This cache is meant to be quick and re-use thumbnails created in previous
         nuke sessions as long as the OS decides to keep them.
-
         """
         self._cache = dict()
         self._callbacks = defaultdict(list)
-
-    def clear(self):
-        """Clear the whole cache
-
-        The files are not directly removed since other cache instances might be using them.
-        The tmp files are left to be managed by the OS.
-        """
-        # TODO: Should remove the files as well. `TempCache.clear()` is useless in it's current form.
-        self._cache.clear()
-        self._callbacks.clear()
 
     def get_create(
         self,
@@ -277,11 +270,14 @@ class ThumbProcess(object):
             ]
         )
 
-        thread = threading.Thread(
-            target=self._run_in_thread,
-            args=(popen_args, callback, self._output, args, kwargs),
+        thread_pool.submit(
+            self._run_in_thread, popen_args, callback, self._output, args, kwargs
         )
-        thread.start()
+        # thread = threading.Thread(
+        #     target=self._run_in_thread,
+        #     args=(popen_args, callback, self._output, args, kwargs),
+        # )
+        # thread.start()
 
     @staticmethod
     def _run_in_thread(popen_args, callback, output, args, kwargs):

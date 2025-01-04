@@ -14,10 +14,6 @@ class FrameMode(Enum):
 class IThumbCache:
     """Handle the generation and caching of thumbnails"""
 
-    def clear(self) -> None:
-        """Clear the whole cache"""
-        raise NotImplementedError
-
     def get_create(
         self,
         source: str,
