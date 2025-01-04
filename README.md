@@ -10,7 +10,7 @@ Pop-up for Foundry's Nuke to change the version of selected nodes
 - Live preview
 - Support for relative path
 - Node frame-range
-- Tumbnails
+- Thumbnails
 
 ## ⚡️ Requirements
 

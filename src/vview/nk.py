@@ -1,4 +1,4 @@
-from typing import Any, Dict, Optional, Sequence, Union
+from typing import Any, Dict, Optional, Sequence, Union, List
 
 import nuke
 
@@ -74,40 +74,39 @@ def choose_version_for_nodes(
     for node in nodes:
         orig_dicts.append(save_knobs(node))
 
-    # Pre-calculate nodes versions.
-    # Helps perform better when live preview is active
-    # at the cost of more work up front.
+    # Pre-calculate all nodes versions.
+    # Helps perform better when live preview is active at the cost of more work up front.
     nodes_versions = []
-    for idx, node in enumerate(nodes):
-        file = orig_dicts[idx]
+    for orig_dict in orig_dicts:
+        file = orig_dict["file"]
         node_versions = scanner.scan_versions(file)
         nodes_versions.append(node_versions)
 
     # Get the path to scan + colorspace
     path = ""
     source_colorspace = None
-    for idx, orig_dict in enumerate(orig_dicts):
+    for node, orig_dict in zip(nodes, orig_dicts):
         file = orig_dict["file"]
         if file:
             path = file
-            source_colorspace = get_node_colorspace(nodes[idx])
+            source_colorspace = get_node_colorspace(node)
             break
 
     # Setup live preview
     def on_preview_changed(_version, _is_preview):
-        # Preview
-        if _is_preview:
-            _version_raw_name = scanner.version_raw_name(_version)
-            for _idx, _node in enumerate(nodes):
-                _node_version = nodes_versions[_idx].get(_version_raw_name)
-                if _node_version is None:
-                    restore_knobs(_node, orig_dicts[_idx])
-                else:
-                    set_node_version(_node, _node_version, scanner, change_range)
-        # Restore
-        else:
-            for _idx, _node in enumerate(nodes):
-                restore_knobs(_node, orig_dicts[_idx])
+        if not _is_preview:
+            # Signals that the update should restore
+            _version = None
+
+        for _node, _orig_dict, _versions in zip(nodes, orig_dicts, nodes_versions):
+            update_node_version(
+                _version,
+                _node,
+                _orig_dict,
+                _versions,
+                scanner,
+                change_range,
+            )
 
     # User select version
     version = select_related_version(
@@ -121,22 +120,86 @@ def choose_version_for_nodes(
     )
 
     # Set the selected version
-    if version:
-        version_raw_name = scanner.version_raw_name(version)
-        for idx, node in enumerate(nodes):
-            node_versions = nodes_versions[idx]
-            node_version = node_versions.get(version_raw_name)
-            if node_version is None:
-                restore_knobs(node, orig_dicts[idx])
-            else:
-                set_node_version(node, node_version, scanner, change_range)
-    # Restore original values
-    else:
-        for _idx, _node in enumerate(nodes):
-            restore_knobs(_node, orig_dicts[_idx])
+    for node, orig_dict, versions in zip(nodes, orig_dicts, nodes_versions):
+        update_node_version(version, node, orig_dict, versions, scanner, change_range)
 
 
 # Helpers ---------------------------------------------------------------------
+def update_node_version(
+    version: Any,
+    node: nuke.Node,
+    orig_dict: dict,
+    node_versions: List[Any],
+    scanner: IVersionScanner,
+    change_range: bool,
+):
+    """Change or restore the knobs of a node based on a selected version
+
+    Args:
+        version:        Selected version. The version may not be related to this node.
+        node:           Node to modify.
+        orig_dict:      Dictionnary of original knobs value for node.
+        node_versions:  Scanned versions related to node.
+        scanner:        Version scanner instance.
+        change_range:   True will update the frame range of the node.
+    """
+    # Dialog cancelled or preview is off. Restore
+    if version is None:
+        restore_knobs(node, orig_dict)
+        return
+
+    # Matching version found. Apply
+    raw_name = scanner.version_raw_name(version)
+    for node_version in node_versions:
+        if scanner.version_raw_name(node_version) == raw_name:
+            set_node_version(node, node_version, scanner, change_range)
+            return
+
+    # No match found. Restore
+    restore_knobs(node, orig_dict)
+
+
+def set_node_version(
+    node: nuke.Node,
+    version: Any,
+    scanner: IVersionScanner,
+    change_range: bool,
+) -> None:
+    """Set the knob values of a node based on a version
+
+    Args:
+        node:           Node to modify.
+        version:        Version to apply.
+        scanner:        Version scanner instance.
+        change_range:   True will update the frame range of the node.
+    """
+    if not version:
+        return
+    contains_name = scanner.version_contains_name(version)
+    version_raw_name = scanner.version_raw_name(version)
+    frame_range = scanner.version_frame_range(version)
+
+    # Set filepaths
+    knob_names = ("file", "proxy")
+    for knob_name in knob_names:
+        knob = node.knob(knob_name)
+        if knob and isinstance(knob, nuke.File_Knob):
+            path = knob.value()
+            if path:
+                if contains_name:
+                    if isinstance(version_raw_name, str):
+                        path = scanner.path_replace_version_name(path, version_raw_name)
+
+                if change_range:
+                    if frame_range:
+                        path = format_as_nuke_sequence(
+                            path, frame_range[0], frame_range[1]
+                        )
+                    knob.fromUserText(path)
+                else:
+                    knob.setValue(path)
+
+
 def save_knobs(node: nuke.Node) -> Dict[str, Union[str, int]]:
     """Build a dictionnary of knob values"""
     values = dict()
@@ -173,36 +236,3 @@ def get_node_colorspace(node: nuke.Node) -> Optional[str]:
         assert isinstance(knob, nuke.Pulldown_Knob)
         if knob.notDefault():
             return knob.value()
-
-
-def set_node_version(
-    node: nuke.Node,
-    version: Any,
-    scanner: IVersionScanner,
-    change_range: bool,
-) -> None:
-    if not version:
-        return
-    contains_name = scanner.version_contains_name(version)
-    version_raw_name = scanner.version_raw_name(version)
-    frame_range = scanner.version_frame_range(version)
-
-    # Set filepaths
-    knob_names = ("file", "proxy")
-    for knob_name in knob_names:
-        knob = node.knob(knob_name)
-        if knob and isinstance(knob, nuke.File_Knob):
-            path = knob.value()
-            if path:
-                if contains_name:
-                    if isinstance(version_raw_name, str):
-                        path = scanner.path_replace_version_name(path, version_raw_name)
-
-                if change_range:
-                    if frame_range:
-                        path = format_as_nuke_sequence(
-                            path, frame_range[0], frame_range[1]
-                        )
-                    knob.fromUserText(path)
-                else:
-                    knob.setValue(path)

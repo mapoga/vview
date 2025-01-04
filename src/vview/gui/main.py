@@ -90,7 +90,7 @@ def select_related_version(
 
         # Generate thumbnail
         if thumb_enabled:
-            assert thumb_cache is not None
+            assert isinstance(thumb_cache, IThumbCache)
 
             # Format as a nuke sequence
             abs_p = scanner.version_absolute_path(version)
