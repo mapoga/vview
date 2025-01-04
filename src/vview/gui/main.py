@@ -74,18 +74,18 @@ def select_related_version(
     for idx, version in enumerate(versions):
         # Create widget
         version_widget = VersionItemWidget(
-            name=scanner.get_version_name(version),
-            path=scanner.get_version_path(version),
-            frames=scanner.get_version_formatted_frames(version),
-            date=scanner.get_version_formatted_date(version),
-            directory=str(Path(scanner.get_version_absolute_path(version)).parent),
+            name=scanner.version_formatted_name(version),
+            path=scanner.version_formatted_path(version),
+            frames=scanner.version_formatted_frames(version),
+            date=scanner.version_formatted_date(version),
+            directory=str(Path(scanner.version_absolute_path(version)).parent),
             thumb_enabled=thumb_enabled,
             thumb_reformat=thumb_reformat,
         )
         version_dialog.list_widget.add_version(version_widget)
 
         # Check if its the original path
-        if path == scanner.get_version_path(version):
+        if path == scanner.version_raw_path(version):
             current_idx = idx
 
         # Generate thumbnail
@@ -93,8 +93,8 @@ def select_related_version(
             assert thumb_cache is not None
 
             # Format as a nuke sequence
-            abs_p = scanner.get_version_absolute_path(version)
-            frame_range = scanner.get_version_frame_range(version)
+            abs_p = scanner.version_absolute_path(version)
+            frame_range = scanner.version_frame_range(version)
             if frame_range:
                 abs_p = format_as_nuke_sequence(abs_p, frame_range[0], frame_range[1])
 

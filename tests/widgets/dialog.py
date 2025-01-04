@@ -18,6 +18,7 @@ def main():
     # path = "night_pano_v01_##.jpg"
     # path = "night_pano_v01_022.jpg"
     path = "landscape_hd_v14.jpg"
+    path = "landscape_v001_####.jpg"
 
     # scanner = MinimalVersionScanner(root_dir=root_dir)
     scanner = MinimalVersionScanner()

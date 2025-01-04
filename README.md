@@ -1,31 +1,30 @@
 # vview
 
-Interface for Foundry's Nuke to change the version of selected nodes
+Pop-up for Foundry's Nuke to change the version of selected nodes
 
-## Preview
+![dialog](images/dialog.png)
 
+## ✨ Features
 
-## Features
-
-- Simple popup heavily inspired by Hiero
+- Simple pop-up heavily inspired by Hiero
 - Live preview
-- Update to node range
 - Support for relative path
-- Tumbnail generation in the background
+- Node frame-range
+- Tumbnails
 
-## Requirements
+## ⚡️ Requirements
 
-- Nuke 13.0+ (python>=3.7.3)
+- Nuke 13.0+
 
-## Install
+## 📦 Installation
 
 ### Download
-Download the .zip file of this project and unpack it somewhere.
+Download the zip file of this project and unpack it somewhere. ex: `C:\Users\my_user\.nuke\vview`
+> The downloaded zip file can be deleted once unpacked.
 
-Once unpacked, the .zip file can be deleted.
-ex: `C:\Users\my_user\.nuke\vview`
+**or**
 
-or Use the appropriate command.
+Use one of the commands:
 ```shell
 # Linux / Macos
 git clone https://github.com/mapoga/vview ~/.nuke/vview
@@ -37,13 +36,55 @@ git clone https://github.com/mapoga/vview ~\.nuke\vview
 git clone https://github.com/mapoga/vview %USERPROFILE%\.nuke\vview
 ```
 
-### Configure
-Add this line to your `init.py` file. Adjust the path to your own install path.
+### ⚙️ Configure
+Add this line somewhere in your `init.py` file. 
 ```python
-nuke.pluginAddPath(r"C:\Users\my_user\.nuke\vview")
+nuke.pluginAddPath(r"C:\Users\my_user\.nuke\vview\src")
 ```
-In your `menu.py` file, add this line. Feel free to change the shortcut to your liking.
+> Adjust the path to your own install. Take note that the path is pointing inside `vview\src`.
+
+Add this snippet somewhere in your `menu.py` file. Feel free to change the shortcut to your liking.
 ```python
-nuke.menu('Nodes').
+import vview
+nuke.menu('Nuke').findItem('Edit/Node/Filename').addCommand("vview", vview.launch, shortcut="Ctrl+Up")
 ```
 
+Optionally, the command can be customized. Here are the default values.
+
+- `thumb_enabled`:  Show/Hide the thumbnails.
+- `thumb_reformat`: `"FIT"`, `"FILL"`, `"DISTORT"`, `"EXPANDING"`.
+- `change_range`:   Update the frame-range of the Read nodes.
+
+```python
+import vview
+nuke.menu('Nuke').findItem('Edit/Node/Filename').addCommand(
+    "vview",
+    lambda vview.launch(
+        thumb_enabled=True,
+        thumb_reformat="FILL",
+        change_range=True
+    ),
+    shortcut="Ctrl+Up",
+)
+```
+
+> If the `.nuke/init.py` and `.nuke/menu.py` files did not already exist you need to create them.
+
+## 🚀 Usage
+1. Select **Read** node(s).
+2. Press the shortcut keys `Ctrl + Up` and **vview** will appear.
+3. If you have multiple **Read** nodes selected, the first one with a valid path will be displayed.
+4. Change version using the **arrow keys**. If preview mode is active, the nodes will be updated interactively.
+5. Press `Enter` to apply the change. The version change will apply to all selected nodes. Each node will have its frame-range scanned/updated individually. 
+6. Alternatively, press `Escape` to cancel.
+
+## ⌨️ Mappings
+| Action | keymap |
+| --- | --- |
+| Max version | `Ctrl+Up`, `Ctrl+Right` |
+| Next version | `Up`, `Right` |
+| Prev version | `Down`, `Left` |
+| Min version | `Ctrl+Down`, `Ctrl+Left` |
+| Confirm | `Enter` |
+| Cancel | `Escape` |
+| Open folder | `Ctrl+O` |

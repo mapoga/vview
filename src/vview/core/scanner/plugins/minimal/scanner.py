@@ -55,16 +55,26 @@ class MinimalVersionScanner(IVersionScanner):
             padding_patterns=self.padding_patterns,
         )
 
-    # Version attributes ------------------------------------------------------
-    def get_version_name(self, version: VersionType) -> str:
+    # Name --------------------------------------------------------------------
+    def version_raw_name(self, version: VersionType) -> Optional[str]:
+        return version[1]
+
+    def version_contains_name(self, version: VersionType) -> bool:
+        return self.version_raw_name(version) is None
+
+    def version_formatted_name(self, version: VersionType) -> str:
         _, version_str, _ = version
         return version_str if version_str else "n/a"
 
-    def get_version_path(self, version: VersionType) -> str:
+    # Path --------------------------------------------------------------------
+    def version_raw_path(self, version: VersionType) -> str:
         padded_path, _, _ = version
         return str(padded_path)
 
-    def get_version_absolute_path(self, version: VersionType) -> str:
+    def version_formatted_path(self, version: VersionType) -> str:
+        return self.version_raw_path(version)
+
+    def version_absolute_path(self, version: VersionType) -> str:
         padded_path, _, _ = version
         p = Path(str(padded_path))
 
@@ -78,30 +88,39 @@ class MinimalVersionScanner(IVersionScanner):
         # Default working directory
         return str(p.absolute())
 
-    def get_version_formatted_frames(self, version: VersionType) -> str:
-        _, _, str_frames = version
-        int_frames = [int(f) for f in str_frames]
-        return format_frames(int_frames) or "n/a"
+    def path_replace_version_name(self, path: str, version_str: str) -> str:
+        for pattern in self.version_patterns:
+            version_matches = re_match_versions(path, pattern)
+            if version_matches:
+                for version_match in reversed(version_matches):
+                    path = replace_re_match(path, version_str, version_match)
+                return path
+        return path
 
-    def get_version_frame_range(
-        self, version: VersionType
-    ) -> Optional[Tuple[int, int]]:
+    # Frames ------------------------------------------------------------------
+    def version_frame_range(self, version: VersionType) -> Optional[Tuple[int, int]]:
         _, _, str_frames = version
         if str_frames:
             return int(str_frames[0]), int(str_frames[-1])
 
-    def get_version_formatted_date(self, version: VersionType) -> str:
-        padded_path, _, str_frames = version
+    def version_formatted_frames(self, version: VersionType) -> str:
+        _, _, str_frames = version
+        int_frames = [int(f) for f in str_frames]
+        return format_frames(int_frames, sep=", ") or "n/a"
+
+    # Date --------------------------------------------------------------------
+    def version_formatted_date(self, version: VersionType) -> str:
+        _, _, str_frames = version
 
         # Use the absolute path as-is if there is no frame padding
-        path = self.get_version_absolute_path(version)
+        path = self.version_absolute_path(version)
 
         # Format the last frame if there is frame padding
         if str_frames:
             for pattern in self.padding_patterns:
-                padding_match = re_match_padding(str(path), pattern)
+                padding_match = re_match_padding(path, pattern)
                 if padding_match:
-                    path = replace_re_match(padded_path, str_frames[-1], padding_match)
+                    path = replace_re_match(path, str_frames[-1], padding_match)
                     break
 
         # Get timestamp from existing file
@@ -111,13 +130,3 @@ class MinimalVersionScanner(IVersionScanner):
             return date.strftime("%Y-%m-%d %H:%M")
 
         return "n/a"
-
-    # Path modification -------------------------------------------------------
-    def replace_path_version(self, path: str, version_str: str) -> str:
-        for pattern in self.version_patterns:
-            version_matches = re_match_versions(path, pattern)
-            if version_matches:
-                for version_match in reversed(version_matches):
-                    path = replace_re_match(path, version_str, version_match)
-                return path
-        return path

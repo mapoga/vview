@@ -27,10 +27,23 @@ class IVersionScanner(ABC):
         """
         raise NotImplementedError
 
-    # Version attributes ------------------------------------------------------
+    # Name --------------------------------------------------------------------
     @abstractmethod
-    def get_version_name(self, version: Any) -> str:
-        """Return the full version name of a `version`
+    def version_contains_name(self, version: Any) -> bool:
+        """Check if the path contains a version sub-string
+
+        Version-less paths should return False
+
+        Args:
+            version: Version to inspect
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def version_raw_name(self, version: Any) -> Optional[str]:
+        """Return the version name as scanned
+
+        Version-less paths should return `None`
 
         ex: 'v001'
 
@@ -40,8 +53,20 @@ class IVersionScanner(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_version_path(self, version: Any) -> str:
-        """Return the path of a `version`
+    def version_formatted_name(self, version: Any) -> str:
+        """Return the name of a `version` for display purpose
+
+        Args:
+            version: Version to inspect
+        """
+        raise NotImplementedError
+
+    # Path --------------------------------------------------------------------
+    @abstractmethod
+    def version_raw_path(self, version: Any) -> str:
+        """Return the path of a `version` as scanned
+
+        The path may be relative
 
         ex: 'file_v001_####.exr'
 
@@ -51,7 +76,16 @@ class IVersionScanner(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_version_absolute_path(self, version: Any) -> str:
+    def version_formatted_path(self, version: Any) -> str:
+        """Return the path of a `version` for display purpose
+
+        Args:
+            version: Version to inspect
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def version_absolute_path(self, version: Any) -> str:
         """Return the absolute path of a `version`
 
         ex: '/root/path/to/file_v001_####.exr'
@@ -62,44 +96,7 @@ class IVersionScanner(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def get_version_formatted_frames(self, version: Any) -> str:
-        """Return the frames of a `version` formatted as a string
-
-        ex: '1-5 7 9-10'
-
-        Args:
-            version: Version to inspect
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_version_frame_range(self, version: Any) -> Optional[Tuple[int, int]]:
-        """Return the frame range of a `version` if possible
-
-        ex: (1, 10)
-
-        Args:
-            version: Version to inspect
-
-        Return:
-            first, last
-        """
-        raise NotImplementedError
-
-    @abstractmethod
-    def get_version_formatted_date(self, version: Any) -> str:
-        """Return the timestamp of a `version` formatted as a string
-
-        ex: 2025-01-01 02:21
-
-        Args:
-            version: Version to inspect
-        """
-        raise NotImplementedError
-
-    # Path modification -------------------------------------------------------
-    @abstractmethod
-    def replace_path_version(self, path: str, version_str: str) -> str:
+    def path_replace_version_name(self, path: str, version_str: str) -> str:
         """Replace the version sub-strings in a path
 
         ex: 'name_v001.png' -> 'name_v003.png'
@@ -113,6 +110,48 @@ class IVersionScanner(ABC):
         """
         raise NotImplementedError
 
+    # Frames ------------------------------------------------------------------
+    @abstractmethod
+    def version_frame_range(self, version: Any) -> Optional[Tuple[int, int]]:
+        """Return the frame range of a `version`
+
+        Only medias with a padded path are expected to return a valid frame-range.
+        Video or single frame images should return `None`.
+
+        ex: (1, 10)
+
+        Args:
+            version: Version to inspect
+
+        Return:
+            first, last
+        """
+        raise NotImplementedError
+
+    @abstractmethod
+    def version_formatted_frames(self, version: Any) -> str:
+        """Return the frames of a `version` formatted as a string
+
+        ex: '1-5 7 9-10'
+
+        Args:
+            version: Version to inspect
+        """
+        raise NotImplementedError
+
+    # Date --------------------------------------------------------------------
+    @abstractmethod
+    def version_formatted_date(self, version: Any) -> str:
+        """Return the timestamp of a `version` formatted as a string
+
+        ex: 2025-01-01 02:21
+
+        Args:
+            version: Version to inspect
+        """
+        raise NotImplementedError
+
+    # Print -------------------------------------------------------------------
     def version_pretty_str(self, version: Any, max_len: int = 90) -> str:
         """Return a pretty string of the `version`
 
@@ -123,15 +162,15 @@ class IVersionScanner(ABC):
         if version is None:
             return str(None)
 
-        name = self.get_version_name(version)
+        name = self.version_formatted_name(version)
         dead_space = 15
         suffix_len = max_len - dead_space - len(name)
 
-        frames = self.get_version_formatted_frames(version)
+        frames = self.version_formatted_frames(version)
         frames = elide_middle(frames, suffix_len).ljust(suffix_len)
-        path = self.get_version_path(version)
+        path = self.version_formatted_path(version)
         path = elide_middle(path, suffix_len).ljust(suffix_len)
-        date = self.get_version_formatted_date(version)
+        date = self.version_formatted_date(version)
         date = elide_middle(date, suffix_len).ljust(suffix_len)
 
         txt = ""

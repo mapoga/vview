@@ -73,7 +73,7 @@ def padded_set_frame(padded_path: str, frame: int) -> str:
 
 
 # Format frame list -----------------------------------------------------------
-def format_frames(frames: List[int], sep: str = " ") -> str:
+def format_frames(frames: List[int], sep: str = ", ") -> str:
     try:
         return nuke_frames_formatting(frames, sep=sep)
     except ModuleNotFoundError:
