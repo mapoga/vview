@@ -5,5 +5,6 @@
     <file alias="toggle-slider-off.svg">icons/toggle-slider-off.svg</file>
     <file alias="image.svg">icons/image.svg</file>
     <file alias="info.svg">icons/info.svg</file>
+    <file alias="github-mark-white.svg">icons/github-mark-white.svg</file>
 </qresource>
 </RCC>

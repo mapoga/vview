@@ -60,7 +60,7 @@ class MinimalVersionScanner(IVersionScanner):
         return version[1]
 
     def version_contains_name(self, version: VersionType) -> bool:
-        return self.version_raw_name(version) is None
+        return self.version_raw_name(version) is not None
 
     def version_formatted_name(self, version: VersionType) -> str:
         _, version_str, _ = version

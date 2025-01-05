@@ -51,7 +51,7 @@ from typing import Callable, Optional, Tuple
 
 import nuke
 
-from .base import FrameMode, IThumbCache
+from vview.core.thumb.base import FrameMode, IThumbCache
 
 
 # Thread Pool -----------------------------------------------------------------
@@ -226,11 +226,13 @@ class ThumbProcess(object):
             **kwargs:
         """
         # Nuke is tricky with its command line arguments.
-        # Its better to end with strings to avoid un-expected results
+        # Its better to end with strings to avoid un-expected results.
+        # Set the numbers as early arguments.
         popen_args = [
             f"{sys.executable}",
             "-t",
-            f"{Path(__file__).absolute()}" "-width",
+            f"{Path(__file__).absolute()}",
+            "-width",
             f"{self._width}",
             "-height",
             f"{self._height}",
@@ -273,11 +275,6 @@ class ThumbProcess(object):
         thread_pool.submit(
             self._run_in_thread, popen_args, callback, self._output, args, kwargs
         )
-        # thread = threading.Thread(
-        #     target=self._run_in_thread,
-        #     args=(popen_args, callback, self._output, args, kwargs),
-        # )
-        # thread.start()
 
     @staticmethod
     def _run_in_thread(popen_args, callback, output, args, kwargs):

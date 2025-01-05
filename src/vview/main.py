@@ -8,6 +8,6 @@ def launch(
     from vview.gui.utils import ReformatType
     from vview.nk import choose_version_for_selected_nodes
 
-    thumb_reformat_enum = ReformatType[thumb_reformat.capitalize()]
+    thumb_reformat_enum = ReformatType[thumb_reformat.upper()]
 
     choose_version_for_selected_nodes(thumb_enabled, thumb_reformat_enum, change_range)

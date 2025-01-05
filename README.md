@@ -19,7 +19,7 @@ Pop-up for Foundry's Nuke to change the version of selected nodes
 ## 📦 Installation
 
 ### Download
-Download the zip file of this project and unpack it somewhere. ex: `C:\Users\my_user\.nuke\vview`
+Download the zip file of this project and unpack it somewhere. ex: `C:\Users\my_user\.nuke\plugins\vview`
 > The downloaded zip file can be deleted once unpacked.
 
 **or**
@@ -27,19 +27,22 @@ Download the zip file of this project and unpack it somewhere. ex: `C:\Users\my_
 Use one of the commands:
 ```shell
 # Linux / Macos
-git clone https://github.com/mapoga/vview ~/.nuke/vview
+git clone https://github.com/mapoga/vview ~/.nuke/plugins/vview
 
 # Windows PowerShell
-git clone https://github.com/mapoga/vview ~\.nuke\vview
+git clone https://github.com/mapoga/vview ~\.nuke\plugins\vview
 
 # Windows Command Prompt
-git clone https://github.com/mapoga/vview %USERPROFILE%\.nuke\vview
+git clone https://github.com/mapoga/vview %USERPROFILE%\.nuke\plugins\vview
 ```
+> This package cannot be placed directly inside `.nuke`.
+> It must be placed in a folder that is not part of nuke's plugin path.
+> Here the `plugins` folder is used to shield **vview** from being directly imported.
 
 ### ⚙️ Configure
 Add this line somewhere in your `init.py` file. 
 ```python
-nuke.pluginAddPath(r"C:\Users\my_user\.nuke\vview\src")
+nuke.pluginAddPath(r"plugins\vview\src")
 ```
 > Adjust the path to your own install. Take note that the path is pointing inside `vview\src`.
 

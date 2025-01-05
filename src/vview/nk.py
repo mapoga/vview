@@ -34,7 +34,11 @@ def choose_version_for_selected_nodes(
     if root_dir is None:
         root_dir = nuke.script_directory()
 
+    # TODO: Handle thumbnails generation for reads without rgba channels like cryptomattes.
+    # RuntimeError: Write1: /tmp/vview/c6d2cae9-5de3-5d42-b1ca-e9e769a43480.png: has no valid channels - nothing to write.
+    # TODO: Give option to prioritize certain reads. aka: lower cryptomattes priority.
     nodes = nuke.selectedNodes()
+    nodes.reverse()
     scanner = MinimalVersionScanner(root_dir=root_dir)
     thumb_cache = temp_cache
 
@@ -151,6 +155,9 @@ def update_node_version(
     # Matching version found. Apply
     raw_name = scanner.version_raw_name(version)
     for node_version in node_versions:
+        # TODO: Handle situations where a node may be versionned, but does not have this specific version.
+        # The new version should still be set.
+        # TODO: Offer option to take the nearest version?
         if scanner.version_raw_name(node_version) == raw_name:
             set_node_version(node, node_version, scanner, change_range)
             return
@@ -180,7 +187,7 @@ def set_node_version(
     frame_range = scanner.version_frame_range(version)
 
     # Set filepaths
-    knob_names = ("file", "proxy")
+    knob_names = ("proxy", "file")
     for knob_name in knob_names:
         knob = node.knob(knob_name)
         if knob and isinstance(knob, nuke.File_Knob):
@@ -195,6 +202,8 @@ def set_node_version(
                         path = format_as_nuke_sequence(
                             path, frame_range[0], frame_range[1]
                         )
+                    # Wipe value first so that fromUserText will behave as expected
+                    knob.setValue("")
                     knob.fromUserText(path)
                 else:
                     knob.setValue(path)
@@ -233,6 +242,6 @@ def get_node_colorspace(node: nuke.Node) -> Optional[str]:
     """
     knob = node.knob("colorspace")
     if knob:
-        assert isinstance(knob, nuke.Pulldown_Knob)
-        if knob.notDefault():
-            return knob.value()
+        if isinstance(knob, nuke.Array_Knob):
+            if knob.notDefault():
+                return knob.value()
