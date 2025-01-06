@@ -23,28 +23,49 @@ QLabel#name_QLabel {
   font-size: 14px;
 }
 
-/* Info CheckBox */
-QCheckBox#preview_QCheckBox {
-  background: transparent;
+/* Preferences QPushButton */
+QPushButton#pref_QPushButton {
+  border: 0px solid transparent;
+  border-radius: 0px;
+  padding-left: 6px;
+  padding-right: 6px;
+}
+QPushButton#pref_QPushButton::menu-indicator {
+  image: none;
+}
+
+QMenu {
+  background: rgb(40, 40, 40);
+  color: rgb(110, 110, 110);
+  icon-size: 30px;
+}
+
+QMenu::item {
+  padding: 2px 10px 2px 40px;
   font-family: SourceCodePro;
   font-weight: 600;
-  font-size: 11px;
-  color: #707070;
+  font-size: 12px;
 }
-QCheckBox#preview_QCheckBox::indicator {
-  background-color: transparent;
-  background: transparent;
-  width: 22px;
-  height: 22px;
-  border-radius: 1px;
-  padding-right: 22px;
-  padding-left: 0px;
+QMenu::item:selected {
+  color: #999999;
 }
-QCheckBox#preview_QCheckBox::indicator:unchecked {
+
+QMenu::indicator {
+  padding-left: 10px;
+  width: 20px;
+  height: 20px;
+}
+QMenu::indicator:checked {
+  image: url(:toggle-slider-on.svg);
+}
+QMenu::indicator:unchecked {
   image: url(:toggle-slider-off.svg);
 }
-QCheckBox#preview_QCheckBox::indicator:checked {
-  image: url(:toggle-slider-on.svg);
+QMenu::indicator:checked:selected {
+  image: url(:toggle-slider-on-selected.svg);
+}
+QMenu::indicator:unchecked:selected {
+  image: url(:toggle-slider-off-selected.svg);
 }
 
 /* Info */

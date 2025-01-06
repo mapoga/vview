@@ -7,21 +7,41 @@ from vview.gui.style import BASE_CSS, HEADER_CSS
 class HeaderWidget(QtWidgets.QWidget):
     """Bar at the top of the version dialog"""
 
+    pref_preview_enabled_changed = QtCore.Signal(bool)
+    pref_range_enabled_changed = QtCore.Signal(bool)
+    pref_set_missing_changed = QtCore.Signal(bool)
+    pref_thumb_enabled_changed = QtCore.Signal(bool)
+
     def __init__(self, parent=None):
         super(HeaderWidget, self).__init__(parent=parent)
         self._init_ui()
         self._init_connect()
-
         self.set_index_info(0, 0)
 
     # Public ------------------------------------------------------------------
-    def is_preview(self) -> bool:
-        """Check if the preview toggle is on"""
-        return self.preview_toggle.isChecked()
+    def preview_enabled(self) -> bool:
+        return self.pref_preview_enabled.isChecked()
 
-    def set_is_preview(self, is_preview: bool):
-        """Set the value of the preview toggle"""
-        self.preview_toggle.setChecked(is_preview)
+    def set_preview_enabled(self, enabled: bool) -> None:
+        self.pref_preview_enabled.setChecked(enabled)
+
+    def range_enabled(self) -> bool:
+        return self.pref_range_enabled.isChecked()
+
+    def set_range_enabled(self, enabled: bool) -> None:
+        self.pref_range_enabled.setChecked(enabled)
+
+    def set_missing_enabled(self) -> bool:
+        return self.pref_set_missing.isChecked()
+
+    def set_set_missing_enabled(self, enabled: bool) -> None:
+        self.pref_set_missing.setChecked(enabled)
+
+    def thumb_enabled(self) -> bool:
+        return self.pref_thumb_enabled.isChecked()
+
+    def set_thumb_enabled(self, enabled: bool) -> None:
+        self.pref_thumb_enabled.setChecked(enabled)
 
     def set_index_info(self, index: int, length: int):
         """Update the information section at the left
@@ -83,13 +103,49 @@ class HeaderWidget(QtWidgets.QWidget):
         info_layout.setSpacing(0)
         self.info_grp.setLayout(info_layout)
 
-        # Preview toggle
-        self.preview_toggle = QtWidgets.QCheckBox(parent=self)
-        self.preview_toggle.setObjectName("preview_QCheckBox")
-        self.preview_toggle.setText("Preview")
-        self.preview_toggle.setLayoutDirection(QtCore.Qt.RightToLeft)
-        self.preview_toggle.setFocusPolicy(QtCore.Qt.NoFocus)
-        info_layout.addWidget(self.preview_toggle)
+        # Preferences QPushButton
+        self.pref_button = QtWidgets.QPushButton(parent=self)
+        self.pref_button.setObjectName("pref_QPushButton")
+        self.pref_button.setIcon(QtGui.QIcon(":bars-solid.svg"))
+        self.pref_button.setIconSize(QtCore.QSize(18, 18))
+        self.pref_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.pref_button.setFlat(True)
+        info_layout.addWidget(self.pref_button)
+
+        # Preferences QMenu
+        pref_menu = QtWidgets.QMenu("Preferences", parent=self.pref_button)
+        pref_menu.setToolTipsVisible(True)
+        self.pref_button.setMenu(pref_menu)
+        self.pref_preview_enabled = QtWidgets.QAction(
+            "Live Preview", parent=self.pref_button
+        )
+        self.pref_preview_enabled.setToolTip("Instantly update nodes.")
+        self.pref_preview_enabled.setCheckable(True)
+        self.pref_range_enabled = QtWidgets.QAction(
+            "Edit Range", parent=self.pref_button
+        )
+        self.pref_range_enabled.setToolTip("Update the frame-range of Read nodes.")
+        self.pref_range_enabled.setCheckable(True)
+        self.pref_set_missing = QtWidgets.QAction(
+            "Set Missing", parent=self.pref_button
+        )
+        self.pref_set_missing.setCheckable(True)
+        self.pref_set_missing.setToolTip(
+            "Change the version of nodes even if that version does not exist."
+        )
+        self.pref_thumb_enabled = QtWidgets.QAction(
+            "Thumbnails", parent=self.pref_button
+        )
+        self.pref_thumb_enabled.setCheckable(True)
+        self.pref_thumb_enabled.setToolTip("Show thumbnails.")
+        pref_menu.addActions(
+            (
+                self.pref_preview_enabled,
+                self.pref_range_enabled,
+                self.pref_set_missing,
+                self.pref_thumb_enabled,
+            )
+        )
 
         # Info QLabel
         self.info_QLabel = QtWidgets.QLabel()
@@ -108,6 +164,14 @@ class HeaderWidget(QtWidgets.QWidget):
         layout.setStretch(1, 1)
 
     def _init_connect(self):
+        # Preferences
+        self.pref_preview_enabled.toggled.connect(
+            self.pref_preview_enabled_changed.emit
+        )
+        self.pref_range_enabled.toggled.connect(self.pref_range_enabled_changed.emit)
+        self.pref_set_missing.toggled.connect(self.pref_set_missing_changed.emit)
+        self.pref_thumb_enabled.toggled.connect(self.pref_thumb_enabled_changed.emit)
+
         # Workaround:
         # MouseMoveEvent is required to open tooltips at a custom speed(faster).
         # Tracking is required to enable mouseMoveEvent.

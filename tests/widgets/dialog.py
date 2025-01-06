@@ -1,10 +1,10 @@
-from pathlib import Path
 import sys
+from pathlib import Path
+from typing import Any
 
 from PySide2 import QtWidgets
 
 from vview.core.scanner.plugins.minimal.scanner import MinimalVersionScanner
-
 from vview.core.thumb.fake import FakeTumbCache
 from vview.gui.main import select_related_version
 
@@ -24,8 +24,13 @@ def main():
     scanner = MinimalVersionScanner()
     thumb_cache = FakeTumbCache(delay=0.7, rand_delay=1.0)
 
-    def on_preview_changed(_version, _is_preview):
-        if _is_preview:
+    def on_preview_changed(
+        _version: Any,
+        _preview_enabled: bool,
+        _range_enabled: bool,
+        _set_missing_enabled: bool,
+    ):
+        if _preview_enabled:
             print(scanner.version_pretty_str(_version))
         else:
             print("Preview: Off")
@@ -34,7 +39,6 @@ def main():
         # path,
         str(Path(root_dir) / path),
         scanner,
-        thumb_enabled=True,
         thumb_cache=thumb_cache,
         preview_changed_fct=on_preview_changed,
     )

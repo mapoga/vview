@@ -3,8 +3,10 @@
     <!-- pyside2-rcc resources.qrc -o resources.py -->
     <file alias="toggle-slider-on.svg">icons/toggle-slider-on.svg</file>
     <file alias="toggle-slider-off.svg">icons/toggle-slider-off.svg</file>
+    <file alias="toggle-slider-on-selected.svg">icons/toggle-slider-on-selected.svg</file>
+    <file alias="toggle-slider-off-selected.svg">icons/toggle-slider-off-selected.svg</file>
     <file alias="image.svg">icons/image.svg</file>
     <file alias="info.svg">icons/info.svg</file>
-    <file alias="github-mark-white.svg">icons/github-mark-white.svg</file>
+    <file alias="bars-solid.svg">icons/bars-solid.svg</file>
 </qresource>
 </RCC>
