@@ -38,10 +38,11 @@ QMenu {
   background: rgb(40, 40, 40);
   color: rgb(110, 110, 110);
   icon-size: 30px;
+  padding: 3px 0px 3px 10px;
 }
 
 QMenu::item {
-  padding: 2px 10px 2px 40px;
+  padding: 3px 20px 2px 24px;
   font-family: SourceCodePro;
   font-weight: 600;
   font-size: 12px;
@@ -51,7 +52,6 @@ QMenu::item:selected {
 }
 
 QMenu::indicator {
-  padding-left: 10px;
   width: 20px;
   height: 20px;
 }

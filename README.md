@@ -24,7 +24,7 @@ Download the zip file of this project and unpack it somewhere. ex: `C:\Users\my_
 > [!IMPORTANT]
 > This package cannot be placed directly inside `.nuke`.
 > It must be placed in a folder that is not part of nuke's plugin path.
-> Here the `mapoga` folder is used to shield **vview** from being directly imported.
+> Here the `mapoga` folder is used to shield `vview` from being directly imported.
 
 **or**
 

@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any, Callable, Optional
+from typing import Any, Callable, Optional, Tuple, Dict
 
 from PySide2 import QtGui
 
@@ -18,7 +18,7 @@ def select_related_version(
     thumb_source_colorspace: Optional[str] = None,
     preview_changed_fct: Optional[Callable] = None,
     parent=None,
-) -> Any:
+) -> Tuple[Any, Dict]:
     """Opens a version chooser dialog and return the selected `version`
 
     Args:
@@ -35,7 +35,8 @@ def select_related_version(
                                     preview toggle is active.
 
     Returns:
-        The selected `version`. It can be inspected using the scanner.
+        version: The selected `version`. It can be inspected using the scanner.
+        options: Dialog options/preferences used.
     """
 
     # Reverse the versions order since QListView cannot be visually reversed
@@ -46,19 +47,19 @@ def select_related_version(
 
     # Setup selection changed callback
     def on_preview_changed(
-        _idx: int,
-        _preview_enabled: bool,
-        _range_enabled: bool,
-        _set_missing_enabled: bool,
+        _idx,
+        _preview_enabled,
+        _range_enabled,
+        _set_missing_enabled,
     ):
         if callable(preview_changed_fct):
             _selected_version = versions[_idx] if versions else None
-            preview_changed_fct(
-                _selected_version,
-                _preview_enabled,
-                _range_enabled,
-                _set_missing_enabled,
-            )
+            _options = {
+                "preview_enabled": _preview_enabled,
+                "range_enabled": _range_enabled,
+                "set_missing_enabled": _set_missing_enabled,
+            }
+            preview_changed_fct(_selected_version, _options)
 
     # Setup thumbnails enabled callback
     # Generate thumbnails if they do not already exist
@@ -84,11 +85,7 @@ def select_related_version(
                         callback=add_thumb_pixmap,
                         callback_args=(_version_widget,),
                     )
-
-                # Enable thumbnail
                 _version_widget.set_thumb_enabled(True)
-
-        # Disable thumbnail
         else:
             for version_widget in version_widgets:
                 version_widget.set_thumb_enabled(False)
@@ -147,4 +144,14 @@ def select_related_version(
     if version_dialog.exec_():
         if versions:
             idx = version_dialog.list_widget.selected_index()
-            return versions[idx]
+            return versions[idx], get_dialog_options(version_dialog)
+
+    return None, get_dialog_options(version_dialog)
+
+
+def get_dialog_options(version_dialog: VersionDialog) -> dict:
+    return {
+        "preview_enabled": version_dialog.header.preview_enabled(),
+        "range_enabled": version_dialog.header.range_enabled(),
+        "set_missing_enabled": version_dialog.header.set_missing_enabled(),
+    }

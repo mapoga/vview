@@ -14,6 +14,8 @@ MAIN_FILE_KNOB_NAME = "file"
 FILE_KNOB_NAMES = ("proxy", "file")
 RANGE_KNOB_NAMES = ("first", "last", "origfirst", "origlast")
 
+# TODO: Fix toggle svg rendering black
+
 
 def choose_version_for_selected_nodes() -> None:
     """Opens a version chooser dialog and apply the selection to the selected nodes
@@ -83,23 +85,9 @@ def choose_version_for_nodes(
             break
 
     # Setup live preview
-    range_enabled = True
-    set_missing_enabled = True
-
-    def on_preview_changed(
-        _version: Any,
-        _preview_enabled: bool,
-        _range_enabled: bool,
-        _set_missing_enabled: bool,
-    ):
-        # Update the value to use when the dialog is confirmed
-        global range_enabled
-        global set_missing_enabled
-        range_enabled = _range_enabled
-        set_missing_enabled = _set_missing_enabled
-
-        if not _preview_enabled:
-            # Signals that the update should restore
+    def on_preview_changed(_version: Any, _options: dict):
+        # Signals that the update should restore
+        if not _options["preview_enabled"]:
             _version = None
 
         for _node, _orig_dict, _versions in zip(nodes, orig_dicts, nodes_versions):
@@ -109,12 +97,12 @@ def choose_version_for_nodes(
                 _orig_dict,
                 _versions,
                 scanner,
-                _range_enabled,
-                _set_missing_enabled,
+                _options["range_enabled"],
+                _options["set_missing_enabled"],
             )
 
     # User select version
-    version = select_related_version(
+    version, options = select_related_version(
         path,
         scanner,
         thumb_cache=thumb_cache,
@@ -131,8 +119,8 @@ def choose_version_for_nodes(
             orig_dict,
             versions,
             scanner,
-            range_enabled,
-            set_missing_enabled,
+            options["range_enabled"],
+            options["set_missing_enabled"],
         )
 
 

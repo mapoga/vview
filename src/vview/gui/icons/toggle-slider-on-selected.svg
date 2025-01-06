@@ -1,1 +1,6 @@
-<svg id="on" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 22"><defs><style>.cls-1{fill:#bf9f58;}.cls-2{fill:#262626;}.cls-3{fill:#999999;}</style></defs><title>toggle-slider-on4</title><g id="capsule"><path class="cls-1" d="M12,18H32V4H12a7,7,0,0,0,0,14Z"/></g><path class="cls-2" d="M31,4H23.87a10,10,0,0,0,0,14H31Z"/><g id="circle"><circle class="cls-3" cx="32" cy="11" r="9"/></g></svg>
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 44 22">
+  <path fill="#bf9f58" d="M12,18H32V4H12a7,7,0,0,0,0,14Z"></path>
+  <path fill="#262626" d="M31,4H23.87a10,10,0,0,0,0,14H31Z"></path>
+  <circle fill="#999999" cx="32" cy="11" r="9"></circle>
+</svg>

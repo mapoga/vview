@@ -24,18 +24,13 @@ def main():
     scanner = MinimalVersionScanner()
     thumb_cache = FakeTumbCache(delay=0.7, rand_delay=1.0)
 
-    def on_preview_changed(
-        _version: Any,
-        _preview_enabled: bool,
-        _range_enabled: bool,
-        _set_missing_enabled: bool,
-    ):
-        if _preview_enabled:
+    def on_preview_changed(_version: Any, _options: dict):
+        if _options["preview_enabled"]:
             print(scanner.version_pretty_str(_version))
         else:
             print("Preview: Off")
 
-    version = select_related_version(
+    version, options = select_related_version(
         # path,
         str(Path(root_dir) / path),
         scanner,
