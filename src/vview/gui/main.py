@@ -16,6 +16,7 @@ def select_related_version(
     thumb_cache: IThumbCache,
     thumb_reformat: ReformatType = ReformatType.FILL,
     thumb_source_colorspace: Optional[str] = None,
+    thumb_compatible: bool = True,
     preview_changed_fct: Optional[Callable] = None,
     parent=None,
 ) -> Tuple[Any, Dict]:
@@ -29,10 +30,13 @@ def select_related_version(
                                     Required when `thumb_enabled` is True.
         thumb_reformat:             Type of thumbnail reformat.
         thumb_source_colorspace:    A nuke colorspace as from a Read node.
+        thumb_compatible:           Means that this media can be rendered as an image.
+                                    False will never try an generate thumbnails.
         preview_changed_fct:        Function to call when:
-                                    - The preview toggle is switched.
+                                    - The preview_enabled preferences has changed.
                                     - The selection has changed while the
-                                    preview toggle is active.
+                                      preview_enabled prefenece is active.
+                                    - The range_enabled preference has changed.
 
     Returns:
         version: The selected `version`. It can be inspected using the scanner.
@@ -66,29 +70,31 @@ def select_related_version(
     def on_thumb_enabled_changed(_thumb_enabled: bool):
         if _thumb_enabled:
             for _idx, _version_widget in enumerate(version_widgets):
-                _version = versions[_idx]
+                if thumb_compatible:
+                    _version = versions[_idx]
 
-                # Generate Pixmap
-                if _version_widget.thumb_pixmap() is None:
-                    # Format as a nuke sequence
-                    _path = scanner.version_absolute_path(_version)
-                    _frame_range = scanner.version_frame_range(_version)
-                    if _frame_range:
-                        _path = format_as_nuke_sequence(
-                            _path, _frame_range[0], _frame_range[1]
+                    # Generate Pixmap
+                    if _version_widget.thumb_pixmap() is None:
+                        # Format as a nuke sequence
+                        _path = scanner.version_absolute_path(_version)
+                        _frame_range = scanner.version_frame_range(_version)
+                        if _frame_range:
+                            _path = format_as_nuke_sequence(
+                                _path, _frame_range[0], _frame_range[1]
+                            )
+
+                        # Launch sub-Process
+                        thumb_cache.get_create(
+                            source=_path,
+                            source_colorspace=thumb_source_colorspace,
+                            callback=add_thumb_pixmap,
+                            callback_args=(_version_widget,),
                         )
 
-                    # Launch sub-Process
-                    thumb_cache.get_create(
-                        source=_path,
-                        source_colorspace=thumb_source_colorspace,
-                        callback=add_thumb_pixmap,
-                        callback_args=(_version_widget,),
-                    )
                 _version_widget.set_thumb_enabled(True)
         else:
-            for version_widget in version_widgets:
-                version_widget.set_thumb_enabled(False)
+            for _version_widget in version_widgets:
+                _version_widget.set_thumb_enabled(False)
 
     # Setup thumb created callback
     def add_thumb_pixmap(_output, _version_widget):

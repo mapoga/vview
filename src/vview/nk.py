@@ -1,4 +1,4 @@
-from typing import Any, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Union
 
 import nuke
 
@@ -13,15 +13,35 @@ from vview.gui.main import select_related_version
 MAIN_FILE_KNOB_NAME = "file"
 FILE_KNOB_NAMES = ("proxy", "file")
 RANGE_KNOB_NAMES = ("first", "last", "origfirst", "origlast")
+THUMB_COMPATIBLE_NODE_TYPES = ("Read", "Write")
 
-# TODO: Fix toggle svg rendering black
+
+# TODO: Handle thumbnails generation for reads without rgba channels like cryptomattes.
+#       RuntimeError: Write1: /tmp/vview/c6d2cae9-5de3-5d42-b1ca-e9e769a43480.png: has no valid channels - nothing to write.
+# TODO: Simplify terminal log from thumnail generation + create log files.
 
 
-def choose_version_for_selected_nodes() -> None:
+def get_display_node_basic(nodes: List[nuke.Node]) -> Optional[nuke.Node]:
+    for node in nodes:
+        knob = node.knob(MAIN_FILE_KNOB_NAME)
+        if knob:
+            path = knob.value()
+            if path:
+                return node
+
+
+def choose_version_for_selected_nodes(
+    display_node_fct: Callable = get_display_node_basic,
+) -> None:
     """Opens a version chooser dialog and apply the selection to the selected nodes
 
     Uses the `MinimalVersionScanner` and the global `temp_cache`.
-    The primary filepath is taken from the first compatible node selected.
+
+    Args:
+        display_node_fct:   Function to choose which node to show from a list of selected nodes.
+                            `Signature: prime_fct(nodes: List[nuke.Node]) -> Optional[nuke.Node]`
+                            If `None` is returned, the dialog will show an emnpty list.
+                            The default function returns the first node with a non-empty 'file' knob string.
     """
     # Working directory
     root_dir = None
@@ -31,16 +51,16 @@ def choose_version_for_selected_nodes() -> None:
     if root_dir is None:
         root_dir = nuke.script_directory()
 
-    # TODO: Handle thumbnails generation for reads without rgba channels like cryptomattes.
-    # RuntimeError: Write1: /tmp/vview/c6d2cae9-5de3-5d42-b1ca-e9e769a43480.png: has no valid channels - nothing to write.
-    # TODO: Give option to prioritize certain reads. aka: lower cryptomattes priority.
+    # List nodes
     nodes = nuke.selectedNodes()
     nodes.reverse()
+    display_node = display_node_fct(nodes)
+
     scanner = MinimalVersionScanner(root_dir=root_dir)
     thumb_cache = temp_cache
-
     choose_version_for_nodes(
         nodes,
+        display_node,
         scanner,
         thumb_cache=thumb_cache,
     )
@@ -48,6 +68,7 @@ def choose_version_for_selected_nodes() -> None:
 
 def choose_version_for_nodes(
     nodes: Sequence[nuke.Node],
+    display_node: Optional[nuke.Node],
     scanner: IVersionScanner,
     thumb_cache: IThumbCache,
 ) -> None:
@@ -57,6 +78,7 @@ def choose_version_for_nodes(
 
     Args:
         nodes:          Nodes to change version.
+        display_node:   Node showed in the dialog. None will show an empty list.
         scanner:        Version scanner instance.
         thumb_cache:    Thumbnail cache instance used to get or generate the thumbnails.
                         Required when `thumb_enabled` is True.
@@ -66,7 +88,7 @@ def choose_version_for_nodes(
     for node in nodes:
         orig_dicts.append(save_knobs(node))
 
-    # Pre-calculate all nodes versions.
+    # Pre-compute all nodes versions.
     # Helps perform better when live preview is active at the cost of more work up front.
     nodes_versions = []
     for orig_dict in orig_dicts:
@@ -74,15 +96,16 @@ def choose_version_for_nodes(
         node_versions = scanner.scan_versions(file)
         nodes_versions.append(node_versions)
 
-    # Get the path to scan + colorspace
+    # Get the path to scan
     path = ""
     source_colorspace = None
-    for node, orig_dict in zip(nodes, orig_dicts):
-        file = orig_dict[MAIN_FILE_KNOB_NAME]
-        if file:
-            path = file
-            source_colorspace = get_node_colorspace(node)
-            break
+    thumb_compatible = False
+    if isinstance(display_node, nuke.Node):
+        knob = display_node.knob(MAIN_FILE_KNOB_NAME)
+        if isinstance(knob, nuke.File_Knob):
+            path = knob.value()
+            source_colorspace = get_node_colorspace(display_node)
+            thumb_compatible = display_node.Class() in THUMB_COMPATIBLE_NODE_TYPES
 
     # Setup live preview
     def on_preview_changed(_version: Any, _options: dict):
@@ -107,6 +130,7 @@ def choose_version_for_nodes(
         scanner,
         thumb_cache=thumb_cache,
         thumb_source_colorspace=source_colorspace,
+        thumb_compatible=thumb_compatible,
         preview_changed_fct=on_preview_changed,
         parent=get_nuke_main_window(),
     )
@@ -190,7 +214,7 @@ def set_node_version_name(
             if path:
                 new_path = scanner.path_replace_version_name(path, version_name)
                 if new_path != path:
-                    knob.setValue(path)
+                    knob.setValue(new_path)
 
 
 def set_node_version(
