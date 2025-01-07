@@ -40,12 +40,14 @@ p.run(callback=print_path)
 ```
 """
 
-from concurrent.futures import ThreadPoolExecutor
+import logging
+import logging.handlers
 import subprocess
 import sys
 import tempfile
 import uuid
 from collections import defaultdict
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Callable, Optional, Tuple
 
@@ -53,9 +55,8 @@ import nuke
 
 from vview.core.thumb.base import FrameMode, IThumbCache
 
-
-# Thread Pool -----------------------------------------------------------------
 thread_pool = ThreadPoolExecutor(max_workers=24)
+warned_of_process_failed = False
 
 
 class TempCache(IThumbCache):
@@ -276,14 +277,39 @@ class ThumbProcess(object):
             self._run_in_thread, popen_args, callback, self._output, args, kwargs
         )
 
-    @staticmethod
-    def _run_in_thread(popen_args, callback, output, args, kwargs):
-        p = subprocess.Popen(popen_args, stdout=subprocess.DEVNULL)
-        p.wait()
+    @classmethod
+    def _run_in_thread(cls, popen_args, callback, output, args, kwargs):
+        # Combine stdout + stderr into stdout
+        p = subprocess.Popen(
+            popen_args, stdout=subprocess.PIPE, stderr=subprocess.STDOUT
+        )
+        std_out, _ = p.communicate()
+
+        # Callback
         if callable(callback):
             nuke.executeInMainThread(
                 callback, args=(output,) + tuple(args), kwargs=kwargs
             )
+
+        # Log failed
+        if not Path(output).is_file():
+            nuke.executeInMainThread(
+                cls.log, args=(popen_args, std_out.decode("utf-8"))
+            )
+
+    @classmethod
+    def log(cls, popen_args, logs):
+        global warned_of_process_failed
+        if not warned_of_process_failed:
+            warned_of_process_failed = True
+            file_handler = logger.handlers[0]
+            log_file = file_handler.baseFilename
+            print(f"[vview] Thumbnail processing failed {log_file}")
+
+        res = "Thumbnail creation failed\n\n"
+        res += f"Arguments: {popen_args}\n\n"
+        res += logs + "\n\n\n"
+        logger.error(res)
 
 
 def _write_node_thumbnail(
@@ -461,7 +487,27 @@ def main():
     )
 
 
+def create_logger():
+    log_path = Path(tempfile.gettempdir()) / "vview" / "thumb.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+
+    logger = logging.getLogger("vview")
+    logger.setLevel(logging.INFO)
+    logger.propagate = False
+
+    # Rotation every 2 hours to prevent big files
+    file_handler = logging.handlers.TimedRotatingFileHandler(
+        log_path, when="H", interval=2, backupCount=1
+    )
+    file_handler.setFormatter(
+        logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
+    )
+    logger.addHandler(file_handler)
+    return logger
+
+
 if __name__ == "__main__":
     main()
 else:
     temp_cache = TempCache()
+    logger = create_logger()

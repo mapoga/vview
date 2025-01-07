@@ -16,11 +16,6 @@ RANGE_KNOB_NAMES = ("first", "last", "origfirst", "origlast")
 THUMB_COMPATIBLE_NODE_TYPES = ("Read", "Write")
 
 
-# TODO: Handle thumbnails generation for reads without rgba channels like cryptomattes.
-#       RuntimeError: Write1: /tmp/vview/c6d2cae9-5de3-5d42-b1ca-e9e769a43480.png: has no valid channels - nothing to write.
-# TODO: Simplify terminal log from thumnail generation + create log files.
-
-
 def choose_version_for_selected_nodes(
     node_sort_key_fct: Optional[Callable] = None,
 ) -> None:
