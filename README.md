@@ -80,3 +80,34 @@ nuke.menu('Nuke').findItem('Edit/Node/Filename').addCommand("vview", vview.launc
 | Confirm | `Enter` |
 | Cancel | `Escape` |
 | Open folder | `Ctrl+O` |
+
+## ⚙️ Options
+### Display node
+The displayed node will always be the **first** node with a **non-empty** `file` knob. The selected nodes can be sorted to affect their display priority using the `node_sort_key_fct` argument.
+
+In this example, nodes with the word "\_main\_" in their filename have higher priority while nodes with "crypto" in their filename have lower priority. Their original selection index is used as a secondary sort key.
+
+```python
+import re
+import nuke
+import vview
+
+def node_sort_fct(node, node_idx):
+    knob = node.knob("file")
+    if isinstance(knob, nuke.File_Knob):
+        path = knob.value()
+        if path:
+            if re.search(r"_main_", path):
+                return 0, node_idx
+            elif re.search(r"crypto", path):
+                return 2, node_idx
+            return 1, node_idx
+    return 3, node_idx
+
+nuke.menu("Nuke").findItem("Edit/Node/Filename").addCommand(
+    "vview",
+    lambda: vview.launch(node_sort_key_fct=node_sort_key_fct),
+    shortcut="Ctrl+Up",
+)
+
+```

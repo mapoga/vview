@@ -21,27 +21,23 @@ THUMB_COMPATIBLE_NODE_TYPES = ("Read", "Write")
 # TODO: Simplify terminal log from thumnail generation + create log files.
 
 
-def get_display_node_basic(nodes: List[nuke.Node]) -> Optional[nuke.Node]:
-    for node in nodes:
-        knob = node.knob(MAIN_FILE_KNOB_NAME)
-        if knob:
-            path = knob.value()
-            if path:
-                return node
-
-
 def choose_version_for_selected_nodes(
-    display_node_fct: Callable = get_display_node_basic,
+    node_sort_key_fct: Optional[Callable] = None,
 ) -> None:
-    """Opens a version chooser dialog and apply the selection to the selected nodes
+    """Opens a version chooser dialog and apply the chosen version to the selected nodes
 
     Uses the `MinimalVersionScanner` and the global `temp_cache`.
 
     Args:
-        display_node_fct:   Function to choose which node to show from a list of selected nodes.
-                            `Signature: prime_fct(nodes: List[nuke.Node]) -> Optional[nuke.Node]`
-                            If `None` is returned, the dialog will show an emnpty list.
-                            The default function returns the first node with a non-empty 'file' knob string.
+        node_sort_key_fct:  Function to sort the selected nodes.
+
+                            nodes_sort_key_fct(
+                                node: nuke.Node,
+                                node_selection_idx: int
+                            ) -> Any
+
+                            The first node in resulting sorted list with a non-empty
+                            "file" knob value will be chosen as the display node.
     """
     # Working directory
     root_dir = None
@@ -54,8 +50,25 @@ def choose_version_for_selected_nodes(
     # List nodes
     nodes = nuke.selectedNodes()
     nodes.reverse()
-    display_node = display_node_fct(nodes)
 
+    # Sort nodes
+    if callable(node_sort_key_fct):
+        sort_keys = []
+        for idx, node in enumerate(nodes):
+            sort_keys.append(node_sort_key_fct(node, idx))
+        nodes = [n for _, n in sorted(zip(sort_keys, nodes))]
+
+    # Find the node to display
+    display_node = None
+    for node in nodes:
+        knob = node.knob(MAIN_FILE_KNOB_NAME)
+        if isinstance(knob, nuke.File_Knob):
+            path = knob.value()
+            if path:
+                display_node = node
+                break
+
+    # Dialog
     scanner = MinimalVersionScanner(root_dir=root_dir)
     thumb_cache = temp_cache
     choose_version_for_nodes(
