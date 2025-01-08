@@ -6,7 +6,7 @@ from PySide2 import QtWidgets
 
 from vview.core.scanner.plugins.minimal.scanner import MinimalVersionScanner
 from vview.core.thumb.fake import FakeTumbCache
-from vview.gui.main import select_related_version
+from vview.gui import ConcreteVersionDialog, Pref
 
 
 def main():
@@ -20,24 +20,33 @@ def main():
     path = "landscape_hd_v14.jpg"
     path = "landscape_v001_####.jpg"
 
-    # scanner = MinimalVersionScanner(root_dir=root_dir)
-    scanner = MinimalVersionScanner()
-    thumb_cache = FakeTumbCache(delay=0.7, rand_delay=1.0)
+    scanner = MinimalVersionScanner(root_dir=root_dir)
+    versions = scanner.scan_versions(path)
+    print(versions)
+    thumb_cache = FakeTumbCache(delay=0.5, rand_delay=1.0)
+    dialog = ConcreteVersionDialog(scanner, thumb_cache, thumb_compatible=True)
 
-    def on_preview_changed(_version: Any, _options: dict):
-        if _options["preview_enabled"]:
+    def _on_version_changed(_version: Any):
+        if dialog.header.preference_enabled(Pref.LIVE_PREVIEW):
             print(scanner.version_pretty_str(_version))
         else:
             print("Preview: Off")
 
-    version, options = select_related_version(
-        # path,
-        str(Path(root_dir) / path),
-        scanner,
-        thumb_cache=thumb_cache,
-        preview_changed_fct=on_preview_changed,
-    )
-    print(scanner.version_pretty_str(version))
+        if _version == versions[-1]:
+            dialog.clear_versions()
+
+    def _on_pref_changed(pref: Pref, enabled: bool):
+        print("Preference changed", pref, enabled)
+        if pref == Pref.NESTED_NODES:
+            dialog.select_version(versions[1])
+
+    dialog.version_changed.connect(_on_version_changed)
+    dialog.header.pref_changed.connect(_on_pref_changed)
+
+    for version in versions:
+        dialog.add_version(version)
+    dialog.adjust_size()
+    dialog.exec_()
     sys.exit()
 
 

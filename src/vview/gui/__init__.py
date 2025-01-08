@@ -1,11 +1,9 @@
-from .widgets.item_widget import VersionItemWidget
-from .widgets.list_widget import VersionListWidget
-from .widgets.dialog_widget import VersionDialog
+from .main import ConcreteVersionDialog
 from .utils import ReformatType
+from .widgets import Pref
 
 __all__ = [
-    VersionListWidget,
-    VersionItemWidget,
-    ReformatType,
-    VersionDialog,
+    "ConcreteVersionDialog",
+    "ReformatType",
+    "Pref",
 ]

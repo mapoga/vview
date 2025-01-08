@@ -10,6 +10,8 @@ from .item_widget import VersionItemWidget
 class VersionListWidget(QtWidgets.QListWidget):
     UNIFORM_HEIGHT = 56
 
+    index_changed = QtCore.Signal(int)  # (idx)
+
     def __init__(
         self,
         max_visible_items: int = 5,
@@ -54,7 +56,7 @@ class VersionListWidget(QtWidgets.QListWidget):
         self._refresh_ui()
 
     # Items ------------------------------------------------------------------
-    def add_version(self, widget: VersionItemWidget) -> QtWidgets.QListWidgetItem:
+    def add_version_item(self, widget: VersionItemWidget) -> QtWidgets.QListWidgetItem:
         """Add a pre-configured version item to the list"""
         item = QtWidgets.QListWidgetItem()
         self.addItem(item)
@@ -210,6 +212,7 @@ class VersionListWidget(QtWidgets.QListWidget):
     def _on_items_selection_changed(self):
         self._update_items_state()
         self._center_selected_item()
+        self.index_changed.emit(self.selected_index())
 
     # Helpers ----------------------------------------------------------------
     def _refresh_ui(self):

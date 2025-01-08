@@ -1,4 +1,4 @@
-from typing import Any, Callable, Dict, List, Optional, Sequence, Union
+from typing import Any, Callable, Dict, List, Optional, Union
 
 import nuke
 
@@ -7,8 +7,7 @@ from vview.core.scanner.plugins.minimal.scanner import MinimalVersionScanner
 from vview.core.thumb.base import IThumbCache
 from vview.core.thumb.nk import temp_cache
 from vview.core.utils import format_as_nuke_sequence
-from vview.gui.main import select_related_version
-
+from vview.gui.main import ConcreteVersionDialog, Pref, ReformatType
 
 MAIN_FILE_KNOB_NAME = "file"
 FILE_KNOB_NAMES = ("proxy", "file")
@@ -24,17 +23,18 @@ def choose_version_for_selected_nodes(
     Uses the `MinimalVersionScanner` and the global `temp_cache`.
 
     Args:
-        node_sort_key_fct:  Function to sort the selected nodes.
+        node_sort_key_fct:  function to sort the selected nodes.
 
                             nodes_sort_key_fct(
-                                node: nuke.Node,
-                                node_selection_idx: int
-                            ) -> Any
+                                node: nuke.node,
+                                idx: int,
+                                depth: int,
+                            ) -> any
 
-                            The first node in resulting sorted list with a non-empty
+                            the first node in the resulting sorted list with a non-empty
                             "file" knob value will be chosen as the display node.
     """
-    # Working directory
+    # Working directory for relative paths
     root_dir = None
     project_dir_knob = nuke.root()["project_directory"]
     if isinstance(project_dir_knob, nuke.File_Knob):
@@ -42,118 +42,281 @@ def choose_version_for_selected_nodes(
     if root_dir is None:
         root_dir = nuke.script_directory()
 
-    # List nodes
+    # Scanner
+    scanner = MinimalVersionScanner(root_dir=root_dir)
+
+    # Nodes
     nodes = nuke.selectedNodes()
     nodes.reverse()
 
-    # Sort nodes
-    if callable(node_sort_key_fct):
-        sort_keys = []
-        for idx, node in enumerate(nodes):
-            sort_keys.append(node_sort_key_fct(node, idx))
-        nodes = [n for _, n in sorted(zip(sort_keys, nodes))]
-
-    # Find the node to display
-    display_node = None
+    # Nested nodes
+    nested_nodes = []
     for node in nodes:
-        knob = node.knob(MAIN_FILE_KNOB_NAME)
-        if isinstance(knob, nuke.File_Knob):
-            path = knob.value()
-            if path:
-                display_node = node
-                break
+        nested_nodes.extend(get_node_children(node, recursive=True))
 
     # Dialog
-    scanner = MinimalVersionScanner(root_dir=root_dir)
-    thumb_cache = temp_cache
-    choose_version_for_nodes(
+    dialog = NodeVersionDialog(
         nodes,
-        display_node,
+        nested_nodes,
         scanner,
-        thumb_cache=thumb_cache,
+        temp_cache,
+        node_sort_key_fct=node_sort_key_fct,
+        parent=get_nuke_main_window(),
     )
+    dialog.exec_()
 
 
-def choose_version_for_nodes(
-    nodes: Sequence[nuke.Node],
-    display_node: Optional[nuke.Node],
-    scanner: IVersionScanner,
-    thumb_cache: IThumbCache,
-) -> None:
-    """Opens a version chooser dialog and apply the selection to the nodes
+class NodeVersionDialog(ConcreteVersionDialog):
+    def __init__(
+        self,
+        nodes: List[nuke.Node],
+        nested_nodes: List[nuke.Node],
+        scanner: IVersionScanner,
+        thumb_cache: IThumbCache,
+        thumb_reformat: ReformatType = ReformatType.FILL,
+        node_sort_key_fct: Optional[Callable] = None,
+        parent=None,
+    ):
+        """Opens a version chooser dialog and apply the selection to the nodes
 
-    The primary filepath is taken from the first compatible node.
+        Args:
+            nodes:              Nodes to change version.
+            nested_nodes:       Nodes grouped inside the primary nodes.
+                                Those nodes will also have their versions changed
+                                if the user has the feature enabled.
+            scanner:            Version scanner instance.
+            thumb_cache:        Thumbnail cache instance used to get or generate the thumbnails.
+                                Required when `thumb_enabled` is True.
+            thumb_reformat:     Type of thumbnail reformat.
+            node_sort_key_fct:  function to sort the selected nodes.
 
-    Args:
-        nodes:          Nodes to change version.
-        display_node:   Node showed in the dialog. None will show an empty list.
-        scanner:        Version scanner instance.
-        thumb_cache:    Thumbnail cache instance used to get or generate the thumbnails.
-                        Required when `thumb_enabled` is True.
-    """
-    # Store original values
-    orig_dicts = []
-    for node in nodes:
-        orig_dicts.append(save_knobs(node))
+                                nodes_sort_key_fct(
+                                    node: nuke.node,
+                                    idx: int,
+                                    depth: int,
+                                ) -> any
 
-    # Pre-compute all nodes versions.
-    # Helps perform better when live preview is active at the cost of more work up front.
-    nodes_versions = []
-    for orig_dict in orig_dicts:
-        file = orig_dict[MAIN_FILE_KNOB_NAME]
-        node_versions = scanner.scan_versions(file)
-        nodes_versions.append(node_versions)
+                                the first node in the resulting sorted list with a non-empty
+                                "file" knob value will be chosen as the display node.
+        """
+        self._node_sort_key_fct = node_sort_key_fct
 
-    # Get the path to scan
-    path = ""
-    source_colorspace = None
-    thumb_compatible = False
-    if isinstance(display_node, nuke.Node):
+        self._nodes = nodes
+        self._nested_nodes = nested_nodes
+
+        # Store / Restore
+        self._nodes_original_values = []
+        self._nested_nodes_original_values = []
+
+        # versions
+        self._nodes_versions = []
+        self._nested_nodes_versions = []
+        self._versions_computed = False
+        self._nested_versions_computed = False
+
+        super().__init__(scanner, thumb_cache, thumb_reformat, parent=parent)
+        self.__init_connects()
+        self._store_original_values()
+        self._compute_versions()
+        self._populate()
+
+    # Private -----------------------------------------------------------------
+    def _store_original_values(self) -> None:
+        """Store the knob values before any modification"""
+        for node in self._nodes:
+            values = save_knobs(node)
+            self._nodes_original_values.append(values)
+
+        for node in self._nested_nodes:
+            values = save_knobs(node)
+            self._nested_nodes_original_values.append(values)
+
+    def _compute_versions(self) -> None:
+        """Scan the nodes versions
+
+        Notes:
+            Nested versions are only scanned when required.
+        """
+        if not self._versions_computed:
+            for node_original_values in self._nodes_original_values:
+                file = node_original_values[MAIN_FILE_KNOB_NAME]
+                versions = self.scanner.scan_versions(file)
+                self._nodes_versions.append(versions)
+            self._versions_computed = True
+
+        if self.header.preference_enabled(Pref.NESTED_NODES):
+            if not self._nested_versions_computed:
+                for node_original_values in self._nested_nodes_original_values:
+                    file = node_original_values[MAIN_FILE_KNOB_NAME]
+                    versions = self.scanner.scan_versions(file)
+                    self._nested_nodes_versions.append(versions)
+                self._nested_versions_computed = True
+
+    def _find_display_node(self) -> Optional[nuke.Node]:
+        """Find a node to display its versions
+
+        Notes:
+            Users can provide a sort_key function to prioritize certain nodes.
+        """
+        # Build nodes list
+        nodes = self._nodes.copy()
+        if self.header.preference_enabled(Pref.NESTED_NODES):
+            nodes.extend(self._nested_nodes)
+
+        # Sort nodes
+        key_fct = self._node_sort_key_fct
+        if callable(key_fct):
+            sort_keys = []
+            for idx, node in enumerate(nodes):
+                depth = len(node.fullName().split("."))
+                sort_keys.append(key_fct(node, idx, depth))
+            nodes = [n for _, n in sorted(zip(sort_keys, nodes))]
+
+        # Find node with valid path
+        for node in nodes:
+            knob = node.knob(MAIN_FILE_KNOB_NAME)
+            if isinstance(knob, nuke.File_Knob):
+                path = knob.value()
+                if path:
+                    return node
+
+    def _config_thumb(self, node: nuke.Node) -> None:
+        """Configure values used in the thumbnail generation process based on the display node
+
+        Args:
+            node:   The display node.
+        """
+        if not node:
+            return
+
+        if isinstance(node, nuke.Node):
+            knob = node.knob(MAIN_FILE_KNOB_NAME)
+            if isinstance(knob, nuke.File_Knob):
+                self.source_colorspace = get_node_colorspace(node)
+                self.thumb_compatible = node.Class() in THUMB_COMPATIBLE_NODE_TYPES
+
+    def _find_node_versions(self, node: nuke.Node) -> List[Any]:
+        """Find the versions related to a node"""
+        if not isinstance(node, nuke.Node):
+            return []
+
+        for idx, n in enumerate(self._nodes):
+            if n == node:
+                return self._nodes_versions[idx]
+
+        for idx, n in enumerate(self._nested_nodes):
+            if n == node:
+                return self._nested_nodes_versions[idx]
+        return []
+
+    def _populate(self) -> None:
+        """Add versions to the list widget"""
+        # node
+        display_node = self._find_display_node()
+        if display_node is None:
+            return
+
+        # versions
+        display_versions = self._find_node_versions(display_node)
+        if not display_versions:
+            return
+
+        # Selection
+        selected_version = None
         knob = display_node.knob(MAIN_FILE_KNOB_NAME)
         if isinstance(knob, nuke.File_Knob):
             path = knob.value()
-            source_colorspace = get_node_colorspace(display_node)
-            thumb_compatible = display_node.Class() in THUMB_COMPATIBLE_NODE_TYPES
+            if path:
+                for display_version in display_versions:
+                    if path == self.scanner.version_raw_path(display_version):
+                        selected_version = display_version
+                        break
 
-    # Setup live preview
-    def on_preview_changed(_version: Any, _options: dict):
-        # Signals that the update should restore
-        if not _options["preview_enabled"]:
-            _version = None
+        # Colorspace + thumbnail compatibility
+        self._config_thumb(display_node)
 
-        for _node, _orig_dict, _versions in zip(nodes, orig_dicts, nodes_versions):
+        # Populate
+        for version in reversed(display_versions):
+            self.add_version(version)
+
+        # Select
+        if selected_version is not None:
+            self.select_version(selected_version)
+
+        self.adjust_size()
+
+    def _update_nodes_version(self, version: Any) -> None:
+        """Update knob values based on a version"""
+        # Nodes
+        for idx, (node, versions) in enumerate(zip(self._nodes, self._nodes_versions)):
             update_node_version(
-                _version,
-                _node,
-                _orig_dict,
-                _versions,
-                scanner,
-                _options["range_enabled"],
-                _options["set_missing_enabled"],
+                version,
+                node,
+                self._nodes_original_values[idx],
+                versions,
+                self.scanner,
+                self.header.preference_enabled(Pref.SET_RANGE),
+                self.header.preference_enabled(Pref.SET_MISSING),
             )
 
-    # User select version
-    version, options = select_related_version(
-        path,
-        scanner,
-        thumb_cache=thumb_cache,
-        thumb_source_colorspace=source_colorspace,
-        thumb_compatible=thumb_compatible,
-        preview_changed_fct=on_preview_changed,
-        parent=get_nuke_main_window(),
-    )
+        # Nested Nodes
+        if self.header.preference_enabled(Pref.NESTED_NODES):
+            for idx, (node, versions) in enumerate(
+                zip(self._nested_nodes, self._nested_nodes_versions)
+            ):
+                update_node_version(
+                    version,
+                    node,
+                    self._nested_nodes_original_values[idx],
+                    versions,
+                    self.scanner,
+                    self.header.preference_enabled(Pref.SET_RANGE),
+                    self.header.preference_enabled(Pref.SET_MISSING),
+                )
 
-    # Set the selected version
-    for node, orig_dict, versions in zip(nodes, orig_dicts, nodes_versions):
-        update_node_version(
-            version,
-            node,
-            orig_dict,
-            versions,
-            scanner,
-            options["range_enabled"],
-            options["set_missing_enabled"],
-        )
+    # Connections -------------------------------------------------------------
+    def __init_connects(self) -> None:
+        self.version_changed.connect(self.__on_version_changed)
+        self.header.pref_changed.connect(self.__on_pref_changed)
+        self.accepted.connect(self._on_accepted)
+        self.rejected.connect(self._on_rejected)
+
+    def __on_version_changed(self, version: Any) -> None:
+        if self.header.preference_enabled(Pref.LIVE_PREVIEW):
+            self._update_nodes_version(version)
+
+    def __on_pref_changed(self, pref: Pref, enabled: bool) -> None:
+        version = self.selected_version()
+
+        if pref == Pref.LIVE_PREVIEW:
+            if enabled:
+                self._update_nodes_version(version)
+            else:
+                self._update_nodes_version(None)
+
+        elif pref == Pref.SET_RANGE:
+            if self.header.preference_enabled(Pref.LIVE_PREVIEW):
+                self._update_nodes_version(version)
+
+        elif pref == Pref.SET_MISSING:
+            if self.header.preference_enabled(Pref.LIVE_PREVIEW):
+                self._update_nodes_version(version)
+
+        elif pref == Pref.NESTED_NODES:
+            self.clear_versions()
+            self._compute_versions()
+            self._populate()
+
+            if self.header.preference_enabled(Pref.LIVE_PREVIEW):
+                version = self.selected_version()
+                self._update_nodes_version(version)
+
+    def _on_accepted(self) -> None:
+        version = self.selected_version()
+        self._update_nodes_version(version)
+
+    def _on_rejected(self) -> None:
+        self._update_nodes_version(None)
 
 
 # Helpers ---------------------------------------------------------------------
@@ -302,6 +465,18 @@ def get_node_colorspace(node: nuke.Node) -> Optional[str]:
         if isinstance(knob, nuke.Array_Knob):
             if knob.notDefault():
                 return knob.value()
+
+
+def get_node_children(node: nuke.Node, recursive: bool = False) -> List[nuke.Node]:
+    children = []
+    if isinstance(node, nuke.Group):
+        children.extend(node.nodes())
+
+    if recursive:
+        for n in children.copy():
+            children.extend(get_node_children(n, recursive=True))
+
+    return children
 
 
 def get_nuke_main_window():

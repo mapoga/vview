@@ -83,28 +83,28 @@ nuke.menu('Nuke').findItem('Edit/Node/Filename').addCommand("vview", vview.launc
 
 ## ⚙️ Options
 ### Display node
-The displayed node will be the **first** node with a **non-empty** `file` knob value. 
+The displayed node will be the **first** node with a **non-empty** `file` knob value.
 
-The selected nodes can be sorted to affect their display priority using the `node_sort_key_fct` argument. By default, the nodes are in their selected order.
+The selected nodes can be sorted to influence their display priority using the `node_sort_key_fct` argument. By default, the nodes are in their selected order.
 
-In this example, nodes with the word "\_main\_" in their filename have higher priority while nodes with "crypto" in their filename have lower priority. Their original selection index is used as a secondary sort key.
+In this example, nodes with the word "\_main\_" in their filename have higher priority while nodes with "crypto" in their filename have lower priority. Their original selection index is used as a secondary sort key and their nesting depth is not used.
 
 ```python
 import re
 import nuke
 import vview
 
-def node_sort_key_fct(node, node_idx):
+def node_sort_key_fct(node, idx, depth):
     knob = node.knob("file")
     if isinstance(knob, nuke.File_Knob):
         path = knob.value()
         if path:
             if re.search(r"_main_", path):
-                return 0, node_idx
+                return 0, idx
             elif re.search(r"crypto", path):
-                return 2, node_idx
-            return 1, node_idx
-    return 3, node_idx
+                return 2, idx
+            return 1, idx
+    return 3, idx
 
 nuke.menu("Nuke").findItem("Edit/Node/Filename").addCommand(
     "vview",

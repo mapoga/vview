@@ -1,163 +1,155 @@
 from pathlib import Path
-from typing import Any, Callable, Optional, Tuple, Dict
+from typing import Any, Optional
 
-from PySide2 import QtGui
+from PySide2 import QtCore, QtGui
 
 from vview.core.scanner.interface import IVersionScanner
 from vview.core.thumb.base import IThumbCache
 from vview.core.utils import format_as_nuke_sequence
-from vview.gui import VersionDialog, VersionItemWidget
-from vview.gui.utils import ReformatType
+
+from .utils import ReformatType
+from .widgets import Pref, VersionDialog, VersionItemWidget
 
 
-def select_related_version(
-    path: str,
-    scanner: IVersionScanner,
-    thumb_cache: IThumbCache,
-    thumb_reformat: ReformatType = ReformatType.FILL,
-    thumb_source_colorspace: Optional[str] = None,
-    thumb_compatible: bool = True,
-    preview_changed_fct: Optional[Callable] = None,
-    parent=None,
-) -> Tuple[Any, Dict]:
-    """Opens a version chooser dialog and return the selected `version`
+class ConcreteVersionDialog(VersionDialog):
+    version_changed = QtCore.Signal(object)  # (version)
 
-    Args:
-        path:                       Path to scan.
-        scanner:                    Version scanner instance.
-        thumb_cache:                Thumbnail cache instance used to get or
-                                    generate the thumbnails.
-                                    Required when `thumb_enabled` is True.
-        thumb_reformat:             Type of thumbnail reformat.
-        thumb_source_colorspace:    A nuke colorspace as from a Read node.
-        thumb_compatible:           Means that this media can be rendered as an image.
-                                    False will never try an generate thumbnails.
-        preview_changed_fct:        Function to call when:
-                                    - The preview_enabled preferences has changed.
-                                    - The selection has changed while the
-                                      preview_enabled prefenece is active.
-                                    - The range_enabled preference has changed.
-
-    Returns:
-        version: The selected `version`. It can be inspected using the scanner.
-        options: Dialog options/preferences used.
-    """
-
-    # Reverse the versions order since QListView cannot be visually reversed
-    versions = scanner.scan_versions(path)
-    versions.reverse()
-    current_idx = 0
-    version_widgets = []
-
-    # Setup selection changed callback
-    def on_preview_changed(
-        _idx,
-        _preview_enabled,
-        _range_enabled,
-        _set_missing_enabled,
+    def __init__(
+        self,
+        scanner: IVersionScanner,
+        thumb_cache: IThumbCache,
+        thumb_reformat: ReformatType = ReformatType.FILL,
+        thumb_source_colorspace: Optional[str] = None,
+        thumb_compatible: bool = False,
+        parent=None,
     ):
-        if callable(preview_changed_fct):
-            _selected_version = versions[_idx] if versions else None
-            _options = {
-                "preview_enabled": _preview_enabled,
-                "range_enabled": _range_enabled,
-                "set_missing_enabled": _set_missing_enabled,
-            }
-            preview_changed_fct(_selected_version, _options)
+        """Version chooser dialog
 
-    # Setup thumbnails enabled callback
-    # Generate thumbnails if they do not already exist
-    def on_thumb_enabled_changed(_thumb_enabled: bool):
-        if _thumb_enabled:
-            for _idx, _version_widget in enumerate(version_widgets):
-                if thumb_compatible:
-                    _version = versions[_idx]
+        Args:
+            scanner:                    Version scanner instance.
+            thumb_cache:                Thumbnail cache instance used to get or
+                                        generate the thumbnails.
+            thumb_reformat:             Type of thumbnail reformat.
+            thumb_source_colorspace:    A nuke colorspace as from a Read node.
+            thumb_compatible:           True means that these versions can be rendered as an image.
+                                        False will never try to generate thumbnails even
+                                        if the user has thumbnails enabled.
+        """
+        self.scanner = scanner
+        self.thumb_cache = thumb_cache
+        self.thumb_reformat = thumb_reformat
+        self.thumb_source_colorspace = thumb_source_colorspace
+        self.thumb_compatible = thumb_compatible
 
-                    # Generate Pixmap
-                    if _version_widget.thumb_pixmap() is None:
-                        # Format as a nuke sequence
-                        _path = scanner.version_absolute_path(_version)
-                        _frame_range = scanner.version_frame_range(_version)
-                        if _frame_range:
-                            _path = format_as_nuke_sequence(
-                                _path, _frame_range[0], _frame_range[1]
-                            )
+        self._versions = []
+        self._widgets = []
 
-                        # Launch sub-Process
-                        thumb_cache.get_create(
-                            source=_path,
-                            source_colorspace=thumb_source_colorspace,
-                            callback=add_thumb_pixmap,
-                            callback_args=(_version_widget,),
-                        )
+        super().__init__(parent=parent)
 
-                _version_widget.set_thumb_enabled(True)
-        else:
-            for _version_widget in version_widgets:
-                _version_widget.set_thumb_enabled(False)
+    def adjust_size(self) -> None:
+        self.adjustSize()
+        size = self.size()
+        self.resize(700, size.height())
 
-    # Setup thumb created callback
-    def add_thumb_pixmap(_output, _version_widget):
-        if Path(_output).is_file():
-            pixmap = QtGui.QPixmap.fromImage(_output)
+    # Version -----------------------------------------------------------------
+    def add_version(self, version: Any) -> None:
+        widget = VersionItemWidget(
+            name=self.scanner.version_formatted_name(version),
+            path=self.scanner.version_formatted_path(version),
+            frames=self.scanner.version_formatted_frames(version),
+            date=self.scanner.version_formatted_date(version),
+            directory=str(Path(self.scanner.version_absolute_path(version)).parent),
+            thumb_enabled=self.header.preference_enabled(Pref.THUMBNAILS),
+            thumb_reformat=self.thumb_reformat,
+        )
+
+        if self.header.preference_enabled(Pref.THUMBNAILS):
+            self._generate_thumbnail(version, widget)
+
+        # Reverse the versions order since QListView cannot be visually reversed
+        self._versions.append(version)
+        self._widgets.append(widget)
+        self.list_widget.add_version_item(widget)
+
+    def clear_versions(self) -> None:
+        self._versions.clear()
+        self._widgets.clear()
+
+        # Block the signals since its repeated during clear
+        self.list_widget.setUpdatesEnabled(False)
+        self.list_widget.blockSignals(True)
+
+        self.list_widget.clear()
+
+        self.list_widget.blockSignals(False)
+        self.list_widget.setUpdatesEnabled(True)
+        self.list_widget.update()
+        # Force a signal after blocking the original ones
+        self.list_widget.index_changed.emit(-1)
+
+        self.adjust_size()
+
+    def select_version(self, version: Any) -> None:
+        for idx, _version in enumerate(self._versions):
+            if _version == version:
+                self.list_widget.set_selected_index(idx)
+                return
+
+    def selected_version(self) -> Optional[Any]:
+        try:
+            return self._versions[self.list_widget.selected_index()]
+        except IndexError:
+            return None
+
+    # Private -----------------------------------------------------------------
+    # Thumbnail ---------------------------------------------------------------
+    def _on_thumb_enabled_changed(self, enabled: bool) -> None:
+        for version, widget in zip(self._versions, self._widgets):
+            if enabled:
+                self._generate_thumbnail(version, widget)
+
+            widget.set_thumb_enabled(enabled)
+
+    def _generate_thumbnail(self, version: Any, widget: VersionItemWidget) -> None:
+        if self.thumb_compatible:
+            if widget.thumb_pixmap() is None:
+                # Format as a nuke sequence
+                path = self.scanner.version_absolute_path(version)
+                frame_range = self.scanner.version_frame_range(version)
+                if frame_range:
+                    path = format_as_nuke_sequence(path, frame_range[0], frame_range[1])
+
+                # Launch sub-Process
+                self.thumb_cache.get_create(
+                    source=path,
+                    source_colorspace=self.thumb_source_colorspace,
+                    callback=self._on_thumb_generated,
+                    callback_args=(widget,),
+                )
+
+    def _on_thumb_generated(self, output: str, widget: VersionItemWidget) -> None:
+        if Path(output).is_file():
+            pixmap = QtGui.QPixmap(output)
             try:
-                _version_widget.set_thumb_pixmap(pixmap)
+                widget.set_thumb_pixmap(pixmap)
 
             # Object was deleted. Dialog must have been closed.
             except RuntimeError:
                 pass
 
-    # Create dialog
-    version_dialog = VersionDialog(
-        preview_changed_fct=on_preview_changed,
-        thumb_enabled_changed_fct=on_thumb_enabled_changed,
-        parent=parent,
-    )
+    # Connections -------------------------------------------------------------
+    def _init_connects(self):
+        super()._init_connects()
+        self.header.pref_changed.connect(self._on_pref_changed)
+        self.list_widget.index_changed.connect(self._on_index_changed)
 
-    # Add versions
-    for idx, version in enumerate(versions):
-        # Create widget
-        version_widget = VersionItemWidget(
-            name=scanner.version_formatted_name(version),
-            path=scanner.version_formatted_path(version),
-            frames=scanner.version_formatted_frames(version),
-            date=scanner.version_formatted_date(version),
-            directory=str(Path(scanner.version_absolute_path(version)).parent),
-            thumb_enabled=False,
-            thumb_reformat=thumb_reformat,
-        )
-        version_dialog.list_widget.add_version(version_widget)
-        version_widgets.append(version_widget)
+    def _on_pref_changed(self, pref: Pref, enabled: bool) -> None:
+        if pref == Pref.THUMBNAILS:
+            self._on_thumb_enabled_changed(enabled)
 
-        # Check if its the original path
-        if path == scanner.version_raw_path(version):
-            current_idx = idx
-
-    # Trigger generation
-    if version_dialog.header.thumb_enabled():
-        version_dialog.header.set_thumb_enabled(False)
-        version_dialog.header.set_thumb_enabled(True)
-
-    # Select the initial path
-    version_dialog.list_widget.set_selected_index(current_idx)
-
-    # Resize
-    version_dialog.adjustSize()
-    size = version_dialog.size()
-    version_dialog.resize(700, size.height())
-
-    # Return the user selected version
-    if version_dialog.exec_():
-        if versions:
-            idx = version_dialog.list_widget.selected_index()
-            return versions[idx], get_dialog_options(version_dialog)
-
-    return None, get_dialog_options(version_dialog)
-
-
-def get_dialog_options(version_dialog: VersionDialog) -> dict:
-    return {
-        "preview_enabled": version_dialog.header.preview_enabled(),
-        "range_enabled": version_dialog.header.range_enabled(),
-        "set_missing_enabled": version_dialog.header.set_missing_enabled(),
-    }
+    def _on_index_changed(self, idx: int) -> None:
+        try:
+            version = self._versions[idx]
+        except IndexError:
+            version = None
+        self.version_changed.emit(version)

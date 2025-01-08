@@ -1,16 +1,23 @@
+from enum import Enum
+
 from PySide2 import QtCore, QtGui, QtWidgets
 
 import vview.gui.resources  # noqa
 from vview.gui.style import BASE_CSS, HEADER_CSS
 
 
+class Pref(Enum):
+    LIVE_PREVIEW = "pref_preview_enabled"
+    SET_RANGE = "pref_range_enabled"
+    SET_MISSING = "pref_missing_enabled"
+    NESTED_NODES = "pref_nested_enabled"
+    THUMBNAILS = "pref_thumb_enabled"
+
+
 class HeaderWidget(QtWidgets.QWidget):
     """Bar at the top of the version dialog"""
 
-    pref_preview_enabled_changed = QtCore.Signal(bool)
-    pref_range_enabled_changed = QtCore.Signal(bool)
-    pref_set_missing_changed = QtCore.Signal(bool)
-    pref_thumb_enabled_changed = QtCore.Signal(bool)
+    pref_changed = QtCore.Signal(object, bool)  # (Pref, enabled)
 
     def __init__(self, parent=None):
         super(HeaderWidget, self).__init__(parent=parent)
@@ -19,29 +26,11 @@ class HeaderWidget(QtWidgets.QWidget):
         self.set_index_info(0, 0)
 
     # Public ------------------------------------------------------------------
-    def preview_enabled(self) -> bool:
-        return self.pref_preview_enabled.isChecked()
+    def preference_enabled(self, pref: Pref) -> bool:
+        return getattr(self, pref.value).isChecked()
 
-    def set_preview_enabled(self, enabled: bool) -> None:
-        self.pref_preview_enabled.setChecked(enabled)
-
-    def range_enabled(self) -> bool:
-        return self.pref_range_enabled.isChecked()
-
-    def set_range_enabled(self, enabled: bool) -> None:
-        self.pref_range_enabled.setChecked(enabled)
-
-    def set_missing_enabled(self) -> bool:
-        return self.pref_set_missing.isChecked()
-
-    def set_set_missing_enabled(self, enabled: bool) -> None:
-        self.pref_set_missing.setChecked(enabled)
-
-    def thumb_enabled(self) -> bool:
-        return self.pref_thumb_enabled.isChecked()
-
-    def set_thumb_enabled(self, enabled: bool) -> None:
-        self.pref_thumb_enabled.setChecked(enabled)
+    def set_preference_enabled(self, pref: Pref, enabled: bool) -> None:
+        getattr(self, pref.value).setChecked(enabled)
 
     def set_index_info(self, index: int, length: int):
         """Update the information section at the left
@@ -126,12 +115,19 @@ class HeaderWidget(QtWidgets.QWidget):
         )
         self.pref_range_enabled.setToolTip("Update the frame-range of Read nodes.")
         self.pref_range_enabled.setCheckable(True)
-        self.pref_set_missing = QtWidgets.QAction(
+        self.pref_missing_enabled = QtWidgets.QAction(
             "Set Missing", parent=self.pref_button
         )
-        self.pref_set_missing.setCheckable(True)
-        self.pref_set_missing.setToolTip(
+        self.pref_missing_enabled.setCheckable(True)
+        self.pref_missing_enabled.setToolTip(
             "Change the version of nodes even if that version does not exist."
+        )
+        self.pref_nested_enabled = QtWidgets.QAction(
+            "Nested Nodes", parent=self.pref_button
+        )
+        self.pref_nested_enabled.setCheckable(True)
+        self.pref_nested_enabled.setToolTip(
+            "Change the version of nodes inside groups recursively."
         )
         self.pref_thumb_enabled = QtWidgets.QAction(
             "Thumbnails", parent=self.pref_button
@@ -142,7 +138,8 @@ class HeaderWidget(QtWidgets.QWidget):
             (
                 self.pref_preview_enabled,
                 self.pref_range_enabled,
-                self.pref_set_missing,
+                self.pref_missing_enabled,
+                self.pref_nested_enabled,
                 self.pref_thumb_enabled,
             )
         )
@@ -166,11 +163,20 @@ class HeaderWidget(QtWidgets.QWidget):
     def _init_connect(self):
         # Preferences
         self.pref_preview_enabled.toggled.connect(
-            self.pref_preview_enabled_changed.emit
+            lambda enabled: self.pref_changed.emit(Pref.LIVE_PREVIEW, enabled)
         )
-        self.pref_range_enabled.toggled.connect(self.pref_range_enabled_changed.emit)
-        self.pref_set_missing.toggled.connect(self.pref_set_missing_changed.emit)
-        self.pref_thumb_enabled.toggled.connect(self.pref_thumb_enabled_changed.emit)
+        self.pref_range_enabled.toggled.connect(
+            lambda enabled: self.pref_changed.emit(Pref.SET_RANGE, enabled)
+        )
+        self.pref_missing_enabled.toggled.connect(
+            lambda enabled: self.pref_changed.emit(Pref.SET_MISSING, enabled)
+        )
+        self.pref_nested_enabled.toggled.connect(
+            lambda enabled: self.pref_changed.emit(Pref.NESTED_NODES, enabled)
+        )
+        self.pref_thumb_enabled.toggled.connect(
+            lambda enabled: self.pref_changed.emit(Pref.THUMBNAILS, enabled)
+        )
 
         # Workaround:
         # MouseMoveEvent is required to open tooltips at a custom speed(faster).
