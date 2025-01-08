@@ -5,7 +5,7 @@ QLabel#thumbnail_QLabel {
 
 /* Name */
 QLabel#name_QLabel {
-  font-weight: 700;
+  font-weight: 600;
   font-size: 18px;
   color: #999999;
 }
@@ -13,7 +13,7 @@ QLabel#name_QLabel {
 /* Name Highlighted */
 QWidget[selected="true"] QLabel#name_QLabel {
   font-size: 20px;
-  font-weight: 900;
+  font-weight: 700;
   color: #bf9f58;
 }
 

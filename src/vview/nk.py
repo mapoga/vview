@@ -192,7 +192,7 @@ class NodeVersionDialog(ConcreteVersionDialog):
         if isinstance(node, nuke.Node):
             knob = node.knob(MAIN_FILE_KNOB_NAME)
             if isinstance(knob, nuke.File_Knob):
-                self.source_colorspace = get_node_colorspace(node)
+                self.thumb_source_colorspace = get_node_colorspace(node)
                 self.thumb_compatible = node.Class() in THUMB_COMPATIBLE_NODE_TYPES
 
     def _find_node_versions(self, node: nuke.Node) -> List[Any]:
