@@ -147,7 +147,7 @@ class TempCache(IThumbCache):
     def _format_filepath(cls, key_str: str):
         """Generate the filepath for a key"""
         name = str(uuid.uuid5(uuid.NAMESPACE_DNS, key_str))
-        return str(Path(cls.ROOT_DIR) / (name + ".png"))
+        return str(Path(cls.ROOT_DIR) / name[:2] / (name[2:] + ".png"))
 
     def _process_finished(self, output, key):
         """This is run when a thumbnail generation is complete"""
