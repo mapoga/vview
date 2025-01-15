@@ -52,14 +52,18 @@ wheels = [
 name = "vview"
 version = "0.1.0"
 source = { editable = "." }
-dependencies = [
+
+[package.dev-dependencies]
+dev = [
     { name = "pyside2" },
     { name = "types-nuke" },
     { name = "types-pyside2" },
 ]
 
 [package.metadata]
-requires-dist = [
+
+[package.metadata.requires-dev]
+dev = [
     { name = "pyside2", specifier = "==5.13.2" },
     { name = "types-nuke", specifier = ">=13.2.8.0" },
     { name = "types-pyside2" },

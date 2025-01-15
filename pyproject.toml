@@ -4,12 +4,14 @@ version = "0.1.0"
 description = "Pop-up for Foundry's Nuke to change the version of selected nodes"
 readme = "README.md"
 requires-python = ">=3.7.3"
-dependencies = [
-    "PySide2==5.13.2",
-    "types-nuke>=13.2.8.0",
-    "types-pyside2",
-]
 
 [build-system]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+[dependency-groups]
+dev = [
+    "PySide2==5.13.2",
+    "types-pyside2",
+    "types-nuke>=13.2.8.0",
+]
