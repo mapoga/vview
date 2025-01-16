@@ -21,6 +21,9 @@ class HeaderWidget(QtWidgets.QWidget):
 
     def __init__(self, parent=None):
         super(HeaderWidget, self).__init__(parent=parent)
+
+        self._info_opened = False
+
         self._init_ui()
         self._init_connect()
         self.set_index_info(0, 0)
@@ -45,6 +48,8 @@ class HeaderWidget(QtWidgets.QWidget):
 
     # Private -----------------------------------------------------------------
     def _init_ui(self):
+        sides_width = 140
+
         self.setStyleSheet(BASE_CSS + HEADER_CSS)
         self.setMinimumHeight(26)
         self.setMaximumHeight(26)
@@ -70,8 +75,8 @@ class HeaderWidget(QtWidgets.QWidget):
         self.index_QLabel = QtWidgets.QLabel("[0/0]")
         self.index_QLabel.setObjectName("index_QLabel")
         # Prevent changes in index to move the name away from the horizontal center
-        self.index_QLabel.setMinimumWidth(180)
-        self.index_QLabel.setMaximumWidth(180)
+        self.index_QLabel.setMinimumWidth(sides_width)
+        self.index_QLabel.setMaximumWidth(sides_width)
         layout.addWidget(self.index_QLabel)
 
         # Name QLabel
@@ -82,8 +87,8 @@ class HeaderWidget(QtWidgets.QWidget):
 
         # Info Grp QWidget
         self.info_grp = QtWidgets.QWidget(parent=self)
-        self.info_grp.setMinimumWidth(180)
-        self.info_grp.setMaximumWidth(180)
+        self.info_grp.setMinimumWidth(sides_width)
+        self.info_grp.setMaximumWidth(sides_width)
         layout.addWidget(self.info_grp)
 
         # Info Grp Layout
@@ -144,19 +149,15 @@ class HeaderWidget(QtWidgets.QWidget):
             )
         )
 
-        # Info QLabel
-        self.info_QLabel = QtWidgets.QLabel()
-        self.info_QLabel.setObjectName("info_QLabel")
-        info_pixmap = QtGui.QPixmap(":info.svg")
-        info_pixmap = info_pixmap.scaled(
-            18,
-            18,
-            QtCore.Qt.IgnoreAspectRatio,
-            QtCore.Qt.SmoothTransformation,
-        )
-        self.info_QLabel.setPixmap(info_pixmap)
-        info_layout.addWidget(self.info_QLabel)
-        info_layout.insertStretch(0, 1)
+        # Info QPushButton
+        self.info_button = QtWidgets.QPushButton(parent=self)
+        self.info_button.setObjectName("info_QPushButton")
+        self.info_button.setIcon(QtGui.QIcon(":info.svg"))
+        self.info_button.setIconSize(QtCore.QSize(18, 18))
+        self.info_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.info_button.setFlat(True)
+        self.info_button.setToolTip(self._tooltip_text())
+        info_layout.addWidget(self.info_button)
 
         # Exit QPushButton
         self.exit_button = QtWidgets.QPushButton(parent=self)
@@ -188,26 +189,15 @@ class HeaderWidget(QtWidgets.QWidget):
             lambda enabled: self.pref_changed.emit(Pref.THUMBNAILS, enabled)
         )
 
-        # Workaround:
-        # MouseMoveEvent is required to open tooltips at a custom speed(faster).
-        # Tracking is required to enable mouseMoveEvent.
-        self.setMouseTracking(True)
-        self.main.setMouseTracking(True)
-        self.info_grp.setMouseTracking(True)
-        self.info_QLabel.setMouseTracking(True)
+        self.info_button.clicked.connect(self._on_info_pressed)
 
-    def mouseMoveEvent(self, event):
-        super(HeaderWidget, self).mouseMoveEvent(event)
-
-        # Workaround to open the tooltip faster than the default
-        if self.info_QLabel.underMouse():
-            info_rect = self.info_QLabel.rect()
-            pos = self.info_QLabel.mapToGlobal(info_rect.center())
-            QtWidgets.QToolTip.showText(
-                pos,
-                self._tooltip_text(),
-                self.info_QLabel,
-            )
+    def _on_info_pressed(self):
+        QtWidgets.QToolTip.showText(
+            self.info_button.mapToGlobal(self.info_button.rect().center()),
+            self._tooltip_text(),
+            self.info_button,
+            rect=self.info_button.rect(),
+        )
 
     @staticmethod
     def _tooltip_text():
