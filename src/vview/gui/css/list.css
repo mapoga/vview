@@ -5,13 +5,19 @@ QWidget * {
 
 /* Widget Item */
 QListWidget::item,
-QListWidget::item:hover {
+QListWidget::item:hover,
+QListWidget::item:!selected:active {
   background: rgb(56, 56, 56);
+  background-color: rgb(56, 56, 56);
+  selection-background-color: rgb(56, 56, 56);
   margin: 1px;
 }
 QListWidget::item:selected,
-QListWidget::item:selected:active {
+QListWidget::item:selected:active,
+QListWidget::item:active {
   background: rgb(62, 62, 62);
+  background-color: rgb(62, 62, 62);
+  selection-background-color: rgb(62, 62, 62);
 }
 QScrollBar:vertical {
   background: rgb(30, 30, 30);
