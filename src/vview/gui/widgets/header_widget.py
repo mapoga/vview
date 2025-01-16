@@ -158,6 +158,16 @@ class HeaderWidget(QtWidgets.QWidget):
         info_layout.addWidget(self.info_QLabel)
         info_layout.insertStretch(0, 1)
 
+        # Exit QPushButton
+        self.exit_button = QtWidgets.QPushButton(parent=self)
+        self.exit_button.setObjectName("exit_QPushButton")
+        self.exit_button.setIcon(QtGui.QIcon(":xmark-solid.svg"))
+        self.exit_button.setIconSize(QtCore.QSize(18, 18))
+        self.exit_button.setFocusPolicy(QtCore.Qt.NoFocus)
+        self.exit_button.setFlat(True)
+        self.exit_button.setToolTip("Press Escape or click away to close")
+        info_layout.addWidget(self.exit_button)
+
         layout.setStretch(1, 1)
 
     def _init_connect(self):

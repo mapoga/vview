@@ -8,5 +8,6 @@
     <file alias="image.svg">icons/image.svg</file>
     <file alias="info.svg">icons/info.svg</file>
     <file alias="bars-solid.svg">icons/bars-solid.svg</file>
+    <file alias="xmark-solid.svg">icons/xmark-solid.svg</file>
 </qresource>
 </RCC>

@@ -70,8 +70,19 @@ QMenu::indicator:unchecked:selected {
 
 /* Info */
 QLabel#info_QLabel {
-  padding-left: 18;
-  padding-right: 18px;
+  padding-left: 14px;
+  padding-right: 14px;
+}
+QLabel#info_QLabel:hover {
+  background: rgb(90, 90, 90);
+}
+
+/* Exit QPushButton */
+QPushButton#exit_QPushButton {
+  border: 0px solid transparent;
+  border-radius: 0px;
+  padding-left: 10px;
+  padding-right: 10px;
 }
 
 /* Tooltip */

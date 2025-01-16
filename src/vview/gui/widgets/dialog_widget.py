@@ -29,7 +29,9 @@ class VersionDialog(QtWidgets.QDialog):
 
         # Window flags
         self.setModal(True)
-        self.setWindowFlags(QtGui.Qt.FramelessWindowHint | QtGui.Qt.Dialog)
+        self.setWindowFlags(QtGui.Qt.FramelessWindowHint | QtGui.Qt.Popup)
+
+        self.list_widget.setFocus()
 
     def _init_connects(self):
         self.list_widget.itemSelectionChanged.connect(self._on_selection_changed)
@@ -45,6 +47,8 @@ class VersionDialog(QtWidgets.QDialog):
         )
         accept_act.triggered.connect(self.accept)
         self.addAction(accept_act)
+
+        self.header.exit_button.pressed.connect(self.reject)
 
     def _on_selection_changed(self):
         # Update index info in header

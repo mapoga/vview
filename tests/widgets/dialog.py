@@ -32,8 +32,8 @@ def main():
         else:
             print("Preview: Off")
 
-        if _version == versions[-1]:
-            dialog.clear_versions()
+        # if _version == versions[-1]:
+        #     dialog.clear_versions()
 
     def _on_pref_changed(pref: Pref, enabled: bool):
         print("Preference changed", pref, enabled)
