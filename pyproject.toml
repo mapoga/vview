@@ -1,6 +1,6 @@
 [project]
 name = "vview"
-version = "0.1.0"
+version = "0.1.1"
 description = "Pop-up for Foundry's Nuke to change the version of selected nodes"
 readme = "README.md"
 requires-python = ">=3.7.3"
