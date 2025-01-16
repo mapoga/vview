@@ -11,6 +11,7 @@ class VersionListWidget(QtWidgets.QListWidget):
     UNIFORM_HEIGHT = 56
 
     index_changed = QtCore.Signal(int)  # (idx)
+    index_added = QtCore.Signal(int)  # (idx)
 
     def __init__(
         self,
@@ -62,6 +63,7 @@ class VersionListWidget(QtWidgets.QListWidget):
         self.addItem(item)
         self.setItemWidget(item, widget)
         self._update_item_size_hint(item)
+        self.index_added.emit(self.count() - 1)
         return item
 
     def idx_widget(self, idx: int) -> Optional[VersionItemWidget]:

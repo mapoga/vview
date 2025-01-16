@@ -46,10 +46,13 @@ class ConcreteVersionDialog(VersionDialog):
 
         super().__init__(parent=parent)
 
-    def adjust_size(self) -> None:
+        default_width = 700
         self.adjustSize()
         size = self.size()
-        self.resize(700, size.height())
+        self.resize(default_width, size.height())
+
+    def adjust_size(self) -> None:
+        self.setFixedHeight(self.sizeHint().height())
 
     # Version -----------------------------------------------------------------
     def add_version(self, version: Any) -> None:
@@ -142,6 +145,7 @@ class ConcreteVersionDialog(VersionDialog):
         super()._init_connects()
         self.header.pref_changed.connect(self._on_pref_changed)
         self.list_widget.index_changed.connect(self._on_index_changed)
+        self.list_widget.index_added.connect(self.adjust_size)
 
     def _on_pref_changed(self, pref: Pref, enabled: bool) -> None:
         if pref == Pref.THUMBNAILS:
